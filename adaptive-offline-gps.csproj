@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <RootNamespace>adaptive_offline_gps</RootNamespace>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Mapsui" Version="5.0.2" />
+    <PackageReference Include="Mapsui.Tiling" Version="5.0.2" />
+    <PackageReference Include="Mapsui.Wpf" Version="5.0.2" />
+    <PackageReference Include="OsmSharp" Version="6.2.0" />
+  </ItemGroup>
+
+</Project>
