@@ -10,6 +10,8 @@ namespace adaptive_offline_gps.Data
 {
     public class RoadSpatialIndex
     {
+        public STRtree<GeometryFeature> MajorVeryLow { get; } = new();
+
         public STRtree<GeometryFeature> MajorLow { get; } = new();
         public STRtree<GeometryFeature> MajorFull { get; } = new();
 
@@ -18,6 +20,7 @@ namespace adaptive_offline_gps.Data
 
         public STRtree<GeometryFeature> Minor { get; } = new();
 
+        public GeometryFeature MergedMajorLow { get; set; } = new();
 
         public void BuildAll()
         {

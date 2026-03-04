@@ -16,66 +16,53 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
+using adaptive_offline_gps.EngineMap;
 
 namespace adaptive_offline_gps
 {
     public partial class MainWindow : Window
     {
-        private MemoryLayer _roadLayer;
+        private MapEngine _mapEngine;
 
-        private RoadLodSelector _lodSelector;
-
-        private bool _isReady = false;
+        private readonly string osmFilePath = @"YOUR_PATH_TO_FILE\romania-roads.osm.pbf";
 
         public MainWindow()
         {
             InitializeComponent();
-            InitializeMap();
+            Loaded += MainWindow_Loaded;
         }
 
-        private async void InitializeMap()
+        private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
-            //string osmFilePath = @"YOUR_PATH_TO_FILE\malta-roads.osm.pbf";
-            string osmFilePath = @"YOUR_PATH_TO_FILE\romania-roads.osm.pbf";
-
-            var map = new Map();    //  Initialize a new Map() object on which we render the nodes
-            map.Layers.Add(Mapsui.Tiling.OpenStreetMap.CreateTileLayer());  //  Fetch 'visual' tiles from OpenStreetMap over HTTP
-
-            _roadLayer = new MemoryLayer { Name = "Roads" };
-            map.Layers.Add(_roadLayer);
-
-            mapControl.Map = map;
-            map.Navigator.ViewportChanged += ViewportChanged;
-
-            var builder = new RoadIndexBuilder();
-            var index = await builder.BuildAsync(osmFilePath);
-
-            _lodSelector = new RoadLodSelector(index);
-
-            _isReady = true;
+            _mapEngine = await MapEngine.CreateAsync(mapControl, osmFilePath);
         }
 
-        private void ViewportChanged(object sender, System.EventArgs e)
-        {
-            if (!_isReady)
-                return;
+        //private void ViewportChanged(object sender, System.EventArgs e)
+        //{
+        //    if (!_isReady)
+        //        return;
 
-            var viewport = mapControl.Map.Navigator.Viewport;
-            var extent = viewport.ToExtent();
+        //    var viewport = mapControl.Map.Navigator.Viewport;
+        //    var extent = viewport.ToExtent();
 
-            if (extent == null)
-                return;
+        //    if (extent == null)
+        //        return;
 
-            var envelope = new Envelope(
-                extent.MinX, extent.MaxX,
-                extent.MinY, extent.MaxY);
+        //    var envelope = new Envelope(
+        //        extent.MinX, extent.MaxX,
+        //        extent.MinY, extent.MaxY);
 
-            var visible = _lodSelector.GetVisible(
-                envelope,
-                viewport.Resolution);
+        //    var visible = _lodSelector.GetVisible(
+        //        envelope,
+        //        viewport.Resolution);
 
-            _roadLayer.Features = visible;
-            mapControl.RefreshGraphics();
-        }
+        //    Dispatcher.Invoke(() =>
+        //    {
+        //        Title = $"Resolution: {viewport.Resolution:F2} | Features: {visible.Count}";
+        //    });
+            
+        //    _roadLayer.Features = visible;
+        //    mapControl.RefreshGraphics();
+        //}
     }
 }

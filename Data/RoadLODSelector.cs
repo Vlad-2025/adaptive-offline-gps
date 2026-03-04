@@ -1,4 +1,5 @@
 ﻿using adaptive_offline_gps.Data;
+using BruTile.Wmts.Generated;
 using Mapsui.Nts;
 using NetTopologySuite.Geometries;
 using System;
@@ -6,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Threading;
 
 namespace adaptive_offline_gps
 {
@@ -24,14 +26,15 @@ namespace adaptive_offline_gps
 
             if (resolution > 150)
             {
-                visible.AddRange(_index.MajorLow.Query(envelope));
+                //visible.AddRange(_index.MajorLow.Query(envelope));
+                visible.Add(_index.MergedMajorLow);
             }
             else if (resolution > 60)
             {
                 visible.AddRange(_index.MajorFull.Query(envelope));
                 visible.AddRange(_index.MediumLow.Query(envelope));
             }
-            else if (resolution > 20)
+            else if (resolution > 5)
             {
                 visible.AddRange(_index.MajorFull.Query(envelope));
                 visible.AddRange(_index.MediumFull.Query(envelope));

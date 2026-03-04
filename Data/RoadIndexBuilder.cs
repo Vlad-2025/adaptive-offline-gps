@@ -1,6 +1,7 @@
 ﻿using Mapsui.Nts;
 using Mapsui.Projections;
 using NetTopologySuite.Geometries;
+using NetTopologySuite.Operation.Union;
 using NetTopologySuite.Simplify;
 using OsmSharp;
 using OsmSharp.Streams;
@@ -47,6 +48,8 @@ namespace adaptive_offline_gps.Data
                 stream.Position = 0;
                 source = new PBFOsmStreamSource(stream);
 
+                var allMajorLowGeometries = new List<Geometry>();
+
                 //  Second pass: ways
                 foreach (var element in source)
                 {
@@ -85,6 +88,8 @@ namespace adaptive_offline_gps.Data
                     {
                         index.MajorFull.Insert(line.EnvelopeInternal, fullFeature);
                         index.MajorLow.Insert(simplifiedLow.EnvelopeInternal, lowFeature);
+
+                        allMajorLowGeometries.Add(simplifiedLow);
                     }
                     else if (highwayType is "primary" or "secondary")
                     {
@@ -96,6 +101,17 @@ namespace adaptive_offline_gps.Data
                         index.Minor.Insert(line.EnvelopeInternal, fullFeature);
                     }
                 }
+
+                var factory = new GeometryFactory();
+
+                var multiLine = factory.CreateMultiLineString(allMajorLowGeometries
+                                                                .OfType<LineString>()
+                                                                .ToArray());
+
+                index.MergedMajorLow = new GeometryFeature
+                {
+                    Geometry = multiLine
+                };
 
                 index.BuildAll();
                 return index;
