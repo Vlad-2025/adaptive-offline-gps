@@ -102,6 +102,7 @@ namespace adaptive_offline_gps.Data
                     }
                 }
 
+                //  This gives a 5-10fps increase at far zooms
                 var factory = new GeometryFactory();
 
                 var multiLine = factory.CreateMultiLineString(allMajorLowGeometries

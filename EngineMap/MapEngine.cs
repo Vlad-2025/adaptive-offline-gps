@@ -65,7 +65,7 @@ namespace adaptive_offline_gps.EngineMap
                 viewport.Resolution);
 
             _roadLayer.Features = visible;
-            _mapControl.RefreshGraphics();
+            _mapControl.Refresh();
 
             if (_mapControl.Parent is Window window)
             {

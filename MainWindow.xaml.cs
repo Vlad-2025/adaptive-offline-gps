@@ -24,7 +24,7 @@ namespace adaptive_offline_gps
     {
         private MapEngine _mapEngine;
 
-        private readonly string osmFilePath = @"YOUR_PATH_TO_FILE\romania-roads.osm.pbf";
+        private readonly string osmFilePath = @"YOUR_PATH_TO_FILE\malta-roads.osm.pbf";
 
         public MainWindow()
         {
@@ -36,33 +36,5 @@ namespace adaptive_offline_gps
         {
             _mapEngine = await MapEngine.CreateAsync(mapControl, osmFilePath);
         }
-
-        //private void ViewportChanged(object sender, System.EventArgs e)
-        //{
-        //    if (!_isReady)
-        //        return;
-
-        //    var viewport = mapControl.Map.Navigator.Viewport;
-        //    var extent = viewport.ToExtent();
-
-        //    if (extent == null)
-        //        return;
-
-        //    var envelope = new Envelope(
-        //        extent.MinX, extent.MaxX,
-        //        extent.MinY, extent.MaxY);
-
-        //    var visible = _lodSelector.GetVisible(
-        //        envelope,
-        //        viewport.Resolution);
-
-        //    Dispatcher.Invoke(() =>
-        //    {
-        //        Title = $"Resolution: {viewport.Resolution:F2} | Features: {visible.Count}";
-        //    });
-            
-        //    _roadLayer.Features = visible;
-        //    mapControl.RefreshGraphics();
-        //}
     }
 }
