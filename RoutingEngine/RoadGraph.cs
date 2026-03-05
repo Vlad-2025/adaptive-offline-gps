@@ -6,7 +6,17 @@ using System.Threading.Tasks;
 
 namespace adaptive_offline_gps.RoutingEngine
 {
-    internal class RoadGraph
+    public class RoadGraph
     {
+        public float[] NodeLat;
+        public float[] NodeLon;
+
+        //  CSR adjacency
+        public int[] EdgeHead;      //  first edge index for that node
+        public int[] EdgeTarget;    //  target node index
+        public float[] EdgeWeight;
+
+        public int NodeCount => NodeLat.Length;
+        public int EdgeCount => EdgeTarget.Length;
     }
 }
