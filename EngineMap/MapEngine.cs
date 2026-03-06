@@ -11,6 +11,8 @@ using Mapsui.Extensions;
 using NetTopologySuite.Geometries;
 using System.Windows.Threading;
 using System.Windows;
+using adaptive_offline_gps.RoutingEngine;
+using System.IO;
 
 namespace adaptive_offline_gps.EngineMap
 {
@@ -36,14 +38,23 @@ namespace adaptive_offline_gps.EngineMap
             map.Navigator.ViewportChanged += OnViewportChanged;
         }
 
-        public static async Task<MapEngine> CreateAsync(
-            MapControl mapControl,
-            string osmFilePath)
+        public static async Task<MapEngine> CreateAsync(MapControl mapControl, string osmFilePath)
         {
-            var builder = new RoadIndexBuilder();
-            var index = await builder.BuildAsync(osmFilePath);
+            RoadGraph graph;
+
+            var indexBuilder = new RoadIndexBuilder();
+            var index = await indexBuilder.BuildAsync(osmFilePath);
 
             var lodSelector = new RoadLodSelector(index);
+
+            if (!RoadGraphSerializer.TryLoadCached(osmFilePath, out graph))
+            {
+                var graphBuilder = new RoadGraphBuilder();
+
+                graph = graphBuilder.Build(osmFilePath);
+
+                RoadGraphSerializer.Save(graph, Path.ChangeExtension(osmFilePath, ".rgph"));
+            }
 
             return new MapEngine(mapControl, lodSelector);
         }

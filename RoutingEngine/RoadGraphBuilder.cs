@@ -54,7 +54,7 @@ namespace adaptive_offline_gps.RoutingEngine
             //  Pass 2: assign compact indeces to used nodes
             foreach(var elem in source)
             {
-                if(elem.Type != OsmGeoType.Way) 
+                if(elem.Type != OsmGeoType.Node) 
                     continue;
 
                 var node = (Node)elem;
@@ -66,6 +66,10 @@ namespace adaptive_offline_gps.RoutingEngine
 
                 nodeCoords.Add(((float)node.Latitude!.Value, (float)node.Longitude!.Value));
             }
+
+            adjList = new List<(int, float)>[nodeCoords.Count];
+            for (int i = 0; i < adjList.Length; i++)
+                adjList[i] = new List<(int, float)>();
 
             stream.Position = 0;
             source = new PBFOsmStreamSource(stream);
