@@ -15,6 +15,14 @@ namespace adaptive_offline_gps.RoutingEngine
         private static readonly Dictionary<string, float> SpeedMap = new()
         {
             //  need to add
+            ["motorway"] = 130,
+            ["trunk"] = 110,
+            ["primary"] = 90,
+            ["secondary"] = 70,
+            ["tertiary"] = 50,
+            ["residential"] = 30,
+            ["living_street"] = 10,
+            ["service"] = 20
         };
 
         public RoadGraph Build(string filePath)
@@ -135,7 +143,7 @@ namespace adaptive_offline_gps.RoutingEngine
 
                 foreach(var (to, w) in adj[i])
                 {
-                    g.EdgeHead[cursor] = to;
+                    g.EdgeTarget[cursor] = to;
                     g.EdgeWeight[cursor] = w;
 
                     cursor++;

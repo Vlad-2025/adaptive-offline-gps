@@ -74,9 +74,9 @@ namespace adaptive_offline_gps.Data
 
                     var line = new LineString(coords.ToArray());
 
-                    var simplifiedLow       = TopologyPreservingSimplifier.Simplify(line, 300);
+                    var simplifiedLow       = DouglasPeuckerSimplifier.Simplify(line, 300);
 
-                    var simplifiedMedium    = TopologyPreservingSimplifier.Simplify(line, 80);
+                    var simplifiedMedium    = DouglasPeuckerSimplifier.Simplify(line, 80);
 
                     var fullFeature     = new GeometryFeature { Geometry = line };
                     var lowFeature      = new GeometryFeature { Geometry = simplifiedLow };

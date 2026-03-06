@@ -14,7 +14,14 @@
     <PackageReference Include="Mapsui" Version="5.0.2" />
     <PackageReference Include="Mapsui.Tiling" Version="5.0.2" />
     <PackageReference Include="Mapsui.Wpf" Version="5.0.2" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.3" />
     <PackageReference Include="OsmSharp" Version="6.2.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>

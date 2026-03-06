@@ -17,6 +17,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using adaptive_offline_gps.EngineMap;
+using Microsoft.Extensions.Configuration;
 
 namespace adaptive_offline_gps
 {
@@ -24,11 +25,20 @@ namespace adaptive_offline_gps
     {
         private MapEngine _mapEngine;
 
-        private readonly string osmFilePath = @"YOUR_PATH_TO_FILE\malta-roads.osm.pbf";
+        private readonly string osmFilePath;
 
         public MainWindow()
         {
             InitializeComponent();
+
+            var config = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+                .Build();
+
+            osmFilePath = config["AppSettings:DataPath"];
+
+
             Loaded += MainWindow_Loaded;
         }
 
