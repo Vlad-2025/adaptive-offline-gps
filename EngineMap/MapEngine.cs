@@ -14,6 +14,7 @@ using System.Windows;
 using adaptive_offline_gps.RoutingEngine;
 using System.IO;
 using Mapsui.Projections;
+using Mapsui.Limiting;
 
 namespace adaptive_offline_gps.EngineMap
 {
@@ -44,6 +45,13 @@ namespace adaptive_offline_gps.EngineMap
 
             _roadLayer = new MemoryLayer { Name = "Roads" };
             map.Layers.Add(_roadLayer);
+
+            //  needs some work, maybe not
+            map.Navigator.OverridePanBounds = new MRect(
+                -20037508.34, -20037508.34,
+                 20037508.34, 20037508.34);
+
+            map.BackColor = new Mapsui.Styles.Color(13,13,15);  //  same color as the control background
 
             _mapControl.Map = map;
             map.Navigator.ViewportChanged += OnViewportChanged;
