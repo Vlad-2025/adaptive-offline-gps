@@ -23,9 +23,9 @@ namespace adaptive_offline_gps
 {
     public partial class MainWindow : Window
     {
-        private MapEngine _mapEngine;
+        private MapEngine? _mapEngine;
 
-        private readonly string osmFilePath;
+        private readonly string? osmFilePath;
 
         public MainWindow()
         {
@@ -46,5 +46,7 @@ namespace adaptive_offline_gps
         {
             _mapEngine = await MapEngine.CreateAsync(mapControl, osmFilePath);
         }
+
+
     }
 }
