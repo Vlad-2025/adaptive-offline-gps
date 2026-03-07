@@ -30,6 +30,8 @@ namespace adaptive_offline_gps.EngineMap
         private Envelope? _lastEnvelope;
         private double _lastResolution;
 
+        public double CurrentResolution => _mapControl.Map?.Navigator?.Viewport.Resolution ?? double.MaxValue;
+
         private MapEngine(MapControl mapControl, RoadLodSelector lodSelector, ViewportChangedCallback? onViewportChanged)
         {
             _mapControl = mapControl;

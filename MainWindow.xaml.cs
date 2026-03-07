@@ -28,6 +28,8 @@ namespace adaptive_offline_gps
         private MapEngine? _mapEngine;
         private string? _osmFilePath;
 
+        private static readonly double SquaredUntilResolution = 156543.0 / Math.Pow(2, 3);  //  cannot be const because pow is runtime
+
         public MainWindow()
         {
             InitializeComponent();
@@ -111,6 +113,7 @@ namespace adaptive_offline_gps
                         Dispatcher.Invoke(() =>
                         {
                             BottomBar.Update(resolution, zoom, lon, lat, featureCount);
+                            UpdateMapSquare();
                         });
                     });
 
@@ -147,10 +150,20 @@ namespace adaptive_offline_gps
             if (availableW <= 0 || availableH <= 0)
                 return;
 
-            double side = Math.Max(200, Math.Min(availableW, availableH));
+            var resolution = _mapEngine?.CurrentResolution ?? double.MaxValue;
 
-            MapBorder.Width     = side;
-            MapBorder.Height    = side;
+            if(resolution > SquaredUntilResolution)
+            {
+                double side = Math.Max(200, Math.Min(availableH, availableW));
+
+                MapBorder.Width = side;
+                MapBorder.Height = side;
+            }
+            else
+            {
+                MapBorder.Width = Math.Max(200, availableW);
+                MapBorder.Height = Math.Max(200, availableH);
+            }
         }
     }
 }
