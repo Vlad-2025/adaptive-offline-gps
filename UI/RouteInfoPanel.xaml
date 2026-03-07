@@ -11,11 +11,11 @@
                        FontSize="9" FontFamily="Consolas" Margin="0,0,0,8"/>
             <StackPanel Orientation="Horizontal">
                 <TextBlock Text="distance   "    Style="{StaticResource StatusLabel}"/>
-                <TextBlock x:Name="TxtDistance"  Text="—" Style="{StaticResource StatusValue}"/>
+                <TextBlock x:Name="TxtDistance"  Text="-" Style="{StaticResource StatusValue}"/>
                 <TextBlock Text="est. time  "    Style="{StaticResource StatusLabel}"/>
-                <TextBlock x:Name="TxtTime"      Text="—" Style="{StaticResource StatusValue}"/>
+                <TextBlock x:Name="TxtTime"      Text="-" Style="{StaticResource StatusValue}"/>
                 <TextBlock Text="nodes visited  " Style="{StaticResource StatusLabel}"/>
-                <TextBlock x:Name="TxtNodes"     Text="—" Style="{StaticResource StatusValue}"/>
+                <TextBlock x:Name="TxtNodes"     Text="-" Style="{StaticResource StatusValue}"/>
             </StackPanel>
         </StackPanel>
     </Border>

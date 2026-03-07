@@ -15,8 +15,13 @@ namespace adaptive_offline_gps.UI
         {
             TxtDistance.Text = $"{distanceKm:F1} km";
             TxtTime.Text = FormatTime(timeSeconds);
+        }
 
-
+        public void Clear()
+        {
+            TxtDistance.Text    = "-";
+            TxtTime.Text        = "-";
+            TxtNodes.Text       = "-";
         }
 
         private static string FormatTime(double timeSeconds)

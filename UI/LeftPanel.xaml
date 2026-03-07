@@ -19,9 +19,9 @@
                                    TextWrapping="Wrap"/>
                         <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
                             <TextBlock Text="nodes " Foreground="#3A3A5C" FontSize="10" FontFamily="Consolas"/>
-                            <TextBlock x:Name="TxtNodeCount" Text="—" Foreground="#4488FF" FontSize="10" FontFamily="Consolas"/>
+                            <TextBlock x:Name="TxtNodeCount" Text="-" Foreground="#4488FF" FontSize="10" FontFamily="Consolas"/>
                             <TextBlock Text="   edges " Foreground="#3A3A5C" FontSize="10" FontFamily="Consolas"/>
-                            <TextBlock x:Name="TxtEdgeCount" Text="—" Foreground="#4488FF" FontSize="10" FontFamily="Consolas"/>
+                            <TextBlock x:Name="TxtEdgeCount" Text="-" Foreground="#4488FF" FontSize="10" FontFamily="Consolas"/>
                         </StackPanel>
                     </StackPanel>
                 </Border>

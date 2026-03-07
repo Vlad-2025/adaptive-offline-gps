@@ -6,7 +6,7 @@
         <!-- Header row with clear button -->
         <StackPanel Orientation="Horizontal" Margin="0,12,0,6">
             <TextBlock Style="{StaticResource SectionHeader}" Text="// DEBUG CONSOLE" Margin="0"/>
-            <TextBlock Text=" — " Foreground="#2A2A3D" FontSize="9" FontFamily="Consolas"
+            <TextBlock Text=" - " Foreground="#2A2A3D" FontSize="9" FontFamily="Consolas"
                        VerticalAlignment="Bottom" Margin="4,0,0,6"/>
             <Button x:Name="BtnClear" Content="clear"
                     Background="Transparent" Foreground="#3A3A5C"

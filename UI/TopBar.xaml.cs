@@ -47,7 +47,7 @@ namespace adaptive_offline_gps.UI
             StatusDotColor.BeginAnimation(SolidColorBrush.ColorProperty, anim);
         }
 
-        public void SetButtons(bool enabled)
+        public void SetButtonsEnabled(bool enabled)
         {
             BtnLoadFile.IsEnabled   = enabled;
             BtnBuildGraph.IsEnabled = enabled;
