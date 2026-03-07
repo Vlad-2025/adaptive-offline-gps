@@ -36,7 +36,7 @@ namespace adaptive_offline_gps.UI
                 LogLevel.Ok => "✓",
                 LogLevel.Warning => "!",
                 LogLevel.Error => "X",
-                _ => ".",
+                _ => "*",
             };
 
             var msgColor = level switch
@@ -58,6 +58,10 @@ namespace adaptive_offline_gps.UI
             line.Inlines.Add(new Run($"{timestamp} {prefix} ")
             {
                 Foreground = new SolidColorBrush(Color.FromRgb(0x3A, 0x3A, 0x5C))
+            });
+            line.Inlines.Add(new Run(message)
+            {
+                Foreground = new SolidColorBrush((Color)ColorConverter.ConvertFromString(msgColor))
             });
 
             LogPanel.Children.Add(line);

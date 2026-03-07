@@ -103,7 +103,7 @@ namespace adaptive_offline_gps
 
                             var src = fromCache ? "cache" : "parsed";
 
-                            LeftPanel.Log($"graph ready     nodes={nodeCount:N0}  edges={edgeCount:N0}  [{src}]", DebugConsole.LogLevel.Ok);
+                            LeftPanel.Log($"graph ready: [{src}]", DebugConsole.LogLevel.Ok);
                         });
                     },
                     onViewportChanged: (resolution, zoom, lon, lat, featureCount) =>
