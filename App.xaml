@@ -1,9 +1,87 @@
 ﻿<Application x:Class="adaptive_offline_gps.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:local="clr-namespace:adaptive_offline_gps"
              StartupUri="MainWindow.xaml">
     <Application.Resources>
-         
+
+        <!-- === Palette === -->
+        <SolidColorBrush x:Key="BgBase"       Color="#0D0D0F"/>
+        <SolidColorBrush x:Key="BgPanel"      Color="#13131A"/>
+        <SolidColorBrush x:Key="BgSurface"    Color="#1A1A24"/>
+        <SolidColorBrush x:Key="BgSurfaceAlt" Color="#1F1F2E"/>
+        <SolidColorBrush x:Key="Border"       Color="#2A2A3D"/>
+        <SolidColorBrush x:Key="AccentGreen"  Color="#00FF88"/>
+        <SolidColorBrush x:Key="AccentBlue"   Color="#4488FF"/>
+        <SolidColorBrush x:Key="AccentAmber"  Color="#FFB830"/>
+        <SolidColorBrush x:Key="AccentRed"    Color="#FF4455"/>
+        <SolidColorBrush x:Key="TextPrimary"  Color="#E8E8F0"/>
+        <SolidColorBrush x:Key="TextMuted"    Color="#6666AA"/>
+        <SolidColorBrush x:Key="TextDim"      Color="#3A3A5C"/>
+
+        <!-- === Button: TopBarButton === -->
+        <Style x:Key="TopBarButton" TargetType="Button">
+            <Setter Property="Background"      Value="Transparent"/>
+            <Setter Property="Foreground"      Value="#8888BB"/>
+            <Setter Property="BorderBrush"     Value="#2A2A3D"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding"         Value="14,6"/>
+            <Setter Property="FontFamily"      Value="Consolas"/>
+            <Setter Property="FontSize"        Value="11"/>
+            <Setter Property="Cursor"          Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="3"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#1A1A2E"/>
+                                <Setter Property="Foreground" Value="#00FF88"/>
+                                <Setter Property="BorderBrush" Value="#00FF88"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#0D1A18"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- === Button: AccentButton === -->
+        <Style x:Key="AccentButton" TargetType="Button" BasedOn="{StaticResource TopBarButton}">
+            <Setter Property="Background"  Value="#001A0D"/>
+            <Setter Property="Foreground"  Value="#00FF88"/>
+            <Setter Property="BorderBrush" Value="#00AA55"/>
+        </Style>
+
+        <!-- === SectionHeader === -->
+        <Style x:Key="SectionHeader" TargetType="TextBlock">
+            <Setter Property="Foreground"  Value="#3A3A5C"/>
+            <Setter Property="FontSize"    Value="9"/>
+            <Setter Property="FontFamily"  Value="Consolas"/>
+            <Setter Property="Margin"      Value="0,12,0,6"/>
+        </Style>
+
+        <!-- === StatusLabel / StatusValue === -->
+        <Style x:Key="StatusLabel" TargetType="TextBlock">
+            <Setter Property="Foreground"        Value="#3A3A5C"/>
+            <Setter Property="FontSize"          Value="10"/>
+            <Setter Property="FontFamily"        Value="Consolas"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style x:Key="StatusValue" TargetType="TextBlock">
+            <Setter Property="Foreground"        Value="#8888BB"/>
+            <Setter Property="FontSize"          Value="10"/>
+            <Setter Property="FontFamily"        Value="Consolas"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin"            Value="0,0,20,0"/>
+        </Style>
+
     </Application.Resources>
 </Application>

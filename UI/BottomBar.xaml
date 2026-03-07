@@ -1,0 +1,22 @@
+<UserControl x:Class="adaptive_offline_gps.UI.BottomBar"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Height="28">
+
+    <Border Background="#13131A"
+            BorderBrush="#2A2A3D"
+            BorderThickness="0,1,0,0">
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0">
+            <TextBlock Text="res "      Style="{StaticResource StatusLabel}"/>
+            <TextBlock x:Name="TxtResolution" Text="—" Style="{StaticResource StatusValue}"/>
+            <TextBlock Text="zoom "     Style="{StaticResource StatusLabel}"/>
+            <TextBlock x:Name="TxtZoom"       Text="—" Style="{StaticResource StatusValue}"/>
+            <TextBlock Text="center "   Style="{StaticResource StatusLabel}"/>
+            <TextBlock x:Name="TxtCenter"     Text="—" Style="{StaticResource StatusValue}"/>
+            <TextBlock Text="features " Style="{StaticResource StatusLabel}"/>
+            <TextBlock x:Name="TxtFeatures"   Text="—" Style="{StaticResource StatusValue}"/>
+            <TextBlock Text="load "     Style="{StaticResource StatusLabel}"/>
+            <TextBlock x:Name="TxtLoadTime"   Text="—" Style="{StaticResource StatusValue}"/>
+        </StackPanel>
+    </Border>
+</UserControl>

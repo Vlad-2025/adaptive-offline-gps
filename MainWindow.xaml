@@ -2,352 +2,76 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:mapsui="clr-namespace:Mapsui.UI.Wpf;assembly=Mapsui.UI.Wpf"
+        xmlns:ui="clr-namespace:adaptive_offline_gps.UI"
         Title="Adaptive Offline GPS"
         Height="900" Width="1400"
         MinHeight="700" MinWidth="1100"
         Background="#0D0D0F"
         FontFamily="Consolas">
 
-    <Window.Resources>
-        <!-- Color palette -->
-        <SolidColorBrush x:Key="BgBase"       Color="#0D0D0F"/>
-        <SolidColorBrush x:Key="BgPanel"      Color="#13131A"/>
-        <SolidColorBrush x:Key="BgSurface"    Color="#1A1A24"/>
-        <SolidColorBrush x:Key="BgSurfaceAlt" Color="#1F1F2E"/>
-        <SolidColorBrush x:Key="Border"       Color="#2A2A3D"/>
-        <SolidColorBrush x:Key="AccentGreen"  Color="#00FF88"/>
-        <SolidColorBrush x:Key="AccentBlue"   Color="#4488FF"/>
-        <SolidColorBrush x:Key="AccentAmber"  Color="#FFB830"/>
-        <SolidColorBrush x:Key="AccentRed"    Color="#FF4455"/>
-        <SolidColorBrush x:Key="TextPrimary"  Color="#E8E8F0"/>
-        <SolidColorBrush x:Key="TextMuted"    Color="#6666AA"/>
-        <SolidColorBrush x:Key="TextDim"      Color="#3A3A5C"/>
-
-        <!-- Top bar button style -->
-        <Style x:Key="TopBarButton" TargetType="Button">
-            <Setter Property="Background"   Value="Transparent"/>
-            <Setter Property="Foreground"   Value="#8888BB"/>
-            <Setter Property="BorderBrush"  Value="#2A2A3D"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding"      Value="14,6"/>
-            <Setter Property="FontFamily"   Value="Consolas"/>
-            <Setter Property="FontSize"     Value="11"/>
-            <Setter Property="Cursor"       Value="Hand"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="3"
-                                Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#1A1A2E"/>
-                                <Setter Property="Foreground" Value="#00FF88"/>
-                                <Setter Property="BorderBrush" Value="#00FF88"/>
-                            </Trigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter Property="Background" Value="#0D1A18"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <!-- Accent button (primary action) -->
-        <Style x:Key="AccentButton" TargetType="Button" BasedOn="{StaticResource TopBarButton}">
-            <Setter Property="Background"   Value="#001A0D"/>
-            <Setter Property="Foreground"   Value="#00FF88"/>
-            <Setter Property="BorderBrush"  Value="#00AA55"/>
-        </Style>
-
-        <!-- Left panel section header -->
-        <Style x:Key="SectionHeader" TargetType="TextBlock">
-            <Setter Property="Foreground"  Value="#3A3A5C"/>
-            <Setter Property="FontSize"    Value="9"/>
-            <Setter Property="FontFamily"  Value="Consolas"/>
-            <Setter Property="Margin"      Value="0,12,0,6"/>
-        </Style>
-
-        <!-- Status label in bottom bar -->
-        <Style x:Key="StatusLabel" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="#3A3A5C"/>
-            <Setter Property="FontSize"   Value="10"/>
-            <Setter Property="FontFamily" Value="Consolas"/>
-            <Setter Property="VerticalAlignment" Value="Center"/>
-        </Style>
-
-        <!-- Status value in bottom bar -->
-        <Style x:Key="StatusValue" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="#8888BB"/>
-            <Setter Property="FontSize"   Value="10"/>
-            <Setter Property="FontFamily" Value="Consolas"/>
-            <Setter Property="VerticalAlignment" Value="Center"/>
-            <Setter Property="Margin"     Value="0,0,20,0"/>
-        </Style>
-
-        <!-- Console log entry styles -->
-        <Style x:Key="LogInfo"  TargetType="TextBlock">
-            <Setter Property="Foreground" Value="#6688CC"/>
-            <Setter Property="FontSize"   Value="11"/>
-            <Setter Property="FontFamily" Value="Consolas"/>
-            <Setter Property="Padding"    Value="0,1"/>
-        </Style>
-        <Style x:Key="LogOk"    TargetType="TextBlock">
-            <Setter Property="Foreground" Value="#00CC66"/>
-            <Setter Property="FontSize"   Value="11"/>
-            <Setter Property="FontFamily" Value="Consolas"/>
-            <Setter Property="Padding"    Value="0,1"/>
-        </Style>
-        <Style x:Key="LogWarn"  TargetType="TextBlock">
-            <Setter Property="Foreground" Value="#FFB830"/>
-            <Setter Property="FontSize"   Value="11"/>
-            <Setter Property="FontFamily" Value="Consolas"/>
-            <Setter Property="Padding"    Value="0,1"/>
-        </Style>
-        <Style x:Key="LogError" TargetType="TextBlock">
-            <Setter Property="Foreground" Value="#FF4455"/>
-            <Setter Property="FontSize"   Value="11"/>
-            <Setter Property="FontFamily" Value="Consolas"/>
-            <Setter Property="Padding"    Value="0,1"/>
-        </Style>
-    </Window.Resources>
-
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="44"/>          <!-- Top bar -->
-            <RowDefinition Height="*"/>           <!-- Main content -->
-            <RowDefinition Height="28"/>          <!-- Bottom bar -->
+            <RowDefinition Height="44"/>
+            <!-- Top bar    -->
+            <RowDefinition Height="*"/>
+            <!-- Content    -->
+            <RowDefinition Height="28"/>
+            <!-- Bottom bar -->
         </Grid.RowDefinitions>
 
-        <!-- ========= -->
-        <!--  TOP BAR  -->
-        <!-- ========= -->
-        <Border Grid.Row="0"
-                Background="#13131A"
-                BorderBrush="#2A2A3D"
-                BorderThickness="0,0,0,1">
-            <Grid Margin="12,0">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>   <!-- Branding -->
-                    <ColumnDefinition Width="*"/>      <!-- Buttons -->
-                    <ColumnDefinition Width="Auto"/>   <!-- Right actions -->
-                </Grid.ColumnDefinitions>
+        <!-- TOP BAR -->
+        <ui:TopBar x:Name="TopBar" Grid.Row="0"/>
 
-                <!-- Branding -->
-                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,24,0">
-                    <TextBlock Text="▸" Foreground="#00FF88" FontSize="14" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                    <TextBlock Text="ADAPTIVE GPS" Foreground="#E8E8F0" FontSize="12" FontWeight="Bold"
-                               VerticalAlignment="Center" FontFamily="Consolas"/>
-                    <TextBlock Text=" // offline router" Foreground="#3A3A5C" FontSize="11"
-                               VerticalAlignment="Center" FontFamily="Consolas"/>
-                </StackPanel>
-
-                <!-- Main nav buttons -->
-                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,0">
-                    <Button x:Name="BtnLoadFile"   Content="[ LOAD FILE ]"   Style="{StaticResource AccentButton}"  Margin="0,0,6,0" Click="BtnLoadFile_Click"/>
-                    <Button x:Name="BtnBuildGraph" Content="[ BUILD GRAPH ]" Style="{StaticResource TopBarButton}"  Margin="0,0,6,0" Click="BtnBuildGraph_Click"/>
-                    <Button x:Name="BtnClearRoute" Content="[ CLEAR ROUTE ]" Style="{StaticResource TopBarButton}"  Margin="0,0,6,0" Click="BtnClearRoute_Click"/>
-                    <Button x:Name="BtnSettings"   Content="[ SETTINGS ]"    Style="{StaticResource TopBarButton}"  Margin="0,0,6,0"/>
-                </StackPanel>
-
-                <!-- Right: status indicator -->
-                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Ellipse x:Name="StatusDot" Width="7" Height="7" Margin="0,0,6,0">
-                        <Ellipse.Fill>
-                            <SolidColorBrush x:Name="StatusDotColor" Color="#3A3A5C"/>
-                        </Ellipse.Fill>
-                    </Ellipse>
-                    <TextBlock x:Name="TxtStatus" Text="NO MAP LOADED"
-                               Foreground="#3A3A5C" FontSize="10" FontFamily="Consolas"
-                               VerticalAlignment="Center"/>
-                </StackPanel>
-            </Grid>
-        </Border>
-
-        <!-- ========= -->
-        <!--  MAIN CONTENT (Left panel | Map) -->
-        <!-- ========= -->
+        <!-- MAIN CONTENT -->
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="300" MinWidth="240" MaxWidth="420"/>  <!-- Left panel -->
-                <ColumnDefinition Width="4"/>                                  <!-- Splitter -->
-                <ColumnDefinition Width="*"/>                                  <!-- Map + console -->
+                <ColumnDefinition Width="300" MinWidth="240" MaxWidth="420"/>
+                <ColumnDefinition Width="4"/>
+                <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
-            <!-- ========= LEFT PANEL ========= -->
-            <Border Grid.Column="0"
-                    Background="#13131A"
-                    BorderBrush="#2A2A3D"
-                    BorderThickness="0,0,1,0">
-                <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="16,12">
-                    <StackPanel>
+            <!-- Left panel: file info, algorithm picker, conditions, debug console -->
+            <ui:LeftPanel x:Name="LeftPanel" Grid.Column="0"/>
 
-                        <!-- MAP FILE section -->
-                        <TextBlock Style="{StaticResource SectionHeader}" Text="// MAP FILE"/>
-                        <Border Background="#1A1A24" BorderBrush="#2A2A3D" BorderThickness="1" CornerRadius="4" Padding="10,8">
-                            <StackPanel>
-                                <TextBlock x:Name="TxtMapFilePath"
-                                           Text="no file selected"
-                                           Foreground="#3A3A5C" FontSize="10" FontFamily="Consolas"
-                                           TextWrapping="Wrap"/>
-                                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                                    <TextBlock Text="nodes " Foreground="#3A3A5C" FontSize="10" FontFamily="Consolas"/>
-                                    <TextBlock x:Name="TxtNodeCount" Text="—"
-                                               Foreground="#4488FF" FontSize="10" FontFamily="Consolas"/>
-                                    <TextBlock Text="   edges " Foreground="#3A3A5C" FontSize="10" FontFamily="Consolas"/>
-                                    <TextBlock x:Name="TxtEdgeCount" Text="—"
-                                               Foreground="#4488FF" FontSize="10" FontFamily="Consolas"/>
-                                </StackPanel>
-                            </StackPanel>
-                        </Border>
-
-                        <!-- ALGORITHM section -->
-                        <TextBlock Style="{StaticResource SectionHeader}" Text="// ALGORITHM"/>
-                        <Border Background="#1A1A24" BorderBrush="#2A2A3D" BorderThickness="1" CornerRadius="4" Padding="10,8">
-                            <StackPanel>
-                                <ComboBox x:Name="CboAlgorithm"
-                                          Background="#1F1F2E" Foreground="#8888BB"
-                                          BorderBrush="#2A2A3D" FontFamily="Consolas" FontSize="11"
-                                          Margin="0,0,0,8">
-                                    <ComboBoxItem Content="Dijkstra"          IsSelected="True"/>
-                                    <ComboBoxItem Content="A*"/>
-                                    <ComboBoxItem Content="Bidirectional A*"/>
-                                    <ComboBoxItem Content="Genetic"/>
-                                </ComboBox>
-                                <!-- Step delay for visualization -->
-                                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                                    <TextBlock Text="step delay " Foreground="#3A3A5C" FontSize="10" FontFamily="Consolas" VerticalAlignment="Center"/>
-                                    <TextBlock x:Name="TxtDelayValue" Text="20ms" Foreground="#00FF88" FontSize="10" FontFamily="Consolas" VerticalAlignment="Center"/>
-                                </StackPanel>
-                                <Slider x:Name="SliderDelay"
-                                        Minimum="0" Maximum="200" Value="20"
-                                        Foreground="#00FF88"
-                                        ValueChanged="SliderDelay_ValueChanged"/>
-                            </StackPanel>
-                        </Border>
-
-                        <!-- CONDITIONS section -->
-                        <TextBlock Style="{StaticResource SectionHeader}" Text="// CONDITIONS"/>
-                        <Border Background="#1A1A24" BorderBrush="#2A2A3D" BorderThickness="1" CornerRadius="4" Padding="10,8">
-                            <StackPanel>
-                                <CheckBox x:Name="ChkRushHour"  Content="Rush hour"   Foreground="#8888BB" FontFamily="Consolas" FontSize="11" Margin="0,2"/>
-                                <CheckBox x:Name="ChkRoadWorks" Content="Road works"  Foreground="#8888BB" FontFamily="Consolas" FontSize="11" Margin="0,2"/>
-                                <CheckBox x:Name="ChkSnow"      Content="Snow"        Foreground="#8888BB" FontFamily="Consolas" FontSize="11" Margin="0,2"/>
-                                <CheckBox x:Name="ChkRain"      Content="Rain"        Foreground="#8888BB" FontFamily="Consolas" FontSize="11" Margin="0,2"/>
-                            </StackPanel>
-                        </Border>
-
-                        <!-- DEBUG CONSOLE section -->
-                        <StackPanel Orientation="Horizontal" Margin="0,12,0,6">
-                            <TextBlock Style="{StaticResource SectionHeader}" Text="// DEBUG CONSOLE" Margin="0"/>
-                            <TextBlock Text=" — " Foreground="#2A2A3D" FontSize="9" FontFamily="Consolas" VerticalAlignment="Bottom" Margin="4,0,0,6"/>
-                            <Button x:Name="BtnClearLog" Content="clear"
-                                    Background="Transparent" Foreground="#3A3A5C"
-                                    BorderThickness="0" FontSize="9" FontFamily="Consolas"
-                                    Cursor="Hand" VerticalAlignment="Bottom" Margin="0,0,0,6"
-                                    Click="BtnClearLog_Click"/>
-                        </StackPanel>
-                        <Border Background="#0D0D0F" BorderBrush="#2A2A3D" BorderThickness="1" CornerRadius="4"
-                                Height="220">
-                            <ScrollViewer x:Name="ConsoleScroller"
-                                          VerticalScrollBarVisibility="Auto"
-                                          Padding="8,6">
-                                <StackPanel x:Name="ConsolePanel"/>
-                            </ScrollViewer>
-                        </Border>
-
-                    </StackPanel>
-                </ScrollViewer>
-            </Border>
-
-            <!-- ========= DRAG SPLITTER ========= -->
+            <!-- Drag splitter -->
             <GridSplitter Grid.Column="1"
-                          Width="4"
-                          HorizontalAlignment="Stretch"
-                          Background="#1A1A24"
-                          BorderBrush="#2A2A3D"
-                          ShowsPreview="False"
-                          Cursor="SizeWE"/>
+                          Width="4" HorizontalAlignment="Stretch"
+                          Background="#1A1A24" ShowsPreview="False" Cursor="SizeWE"/>
 
-            <!-- ========= RIGHT SIDE: Map + resize handle ========= -->
+            <!-- Right side: map + route info -->
             <Grid Grid.Column="2" Background="#0D0D0F">
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="*"/>      <!-- Map area -->
-                    <RowDefinition Height="4"/>      <!-- Splitter -->
-                    <RowDefinition Height="120"/>    <!-- Future: route info panel -->
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="4"/>
+                    <RowDefinition Height="120"/>
                 </Grid.RowDefinitions>
 
-                <!-- Map container — keeps map square, centred, constrained -->
+                <!-- Map container — square constraint applied in code-behind -->
                 <Border Grid.Row="0"
                         x:Name="MapContainer"
                         Background="#0D0D0F"
-                        Padding="20">
-                    <!-- Viewbox keeps aspect ratio; the map control sits inside -->
+                        Padding="20"
+                        SizeChanged="MapContainer_SizeChanged">
                     <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
-                        <!-- Square constraint: bind Width to ActualHeight of this grid -->
                         <Border x:Name="MapBorder"
-                                BorderBrush="#2A2A3D"
-                                BorderThickness="1"
-                                CornerRadius="4"
-                                ClipToBounds="True">
+                                BorderBrush="#2A2A3D" BorderThickness="1"
+                                CornerRadius="4" ClipToBounds="True">
                             <mapsui:MapControl x:Name="mapControl"
-                                               VerticalAlignment="Stretch"
-                                               HorizontalAlignment="Stretch"/>
+                                               HorizontalAlignment="Stretch"
+                                               VerticalAlignment="Stretch"/>
                         </Border>
                     </Grid>
                 </Border>
 
                 <GridSplitter Grid.Row="1" Height="4"
                               HorizontalAlignment="Stretch"
-                              Background="#1A1A24"
-                              Cursor="SizeNS"/>
+                              Background="#1A1A24" Cursor="SizeNS"/>
 
-                <!-- Route info / future panel -->
-                <Border Grid.Row="2"
-                        Background="#13131A"
-                        BorderBrush="#2A2A3D"
-                        BorderThickness="0,1,0,0"
-                        Padding="16,10">
-                    <StackPanel>
-                        <TextBlock Text="// ROUTE INFO" Foreground="#3A3A5C"
-                                   FontSize="9" FontFamily="Consolas" Margin="0,0,0,8"/>
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="distance   " Style="{StaticResource StatusLabel}"/>
-                            <TextBlock x:Name="TxtRouteDistance" Text="—" Style="{StaticResource StatusValue}"/>
-                            <TextBlock Text="est. time  " Style="{StaticResource StatusLabel}"/>
-                            <TextBlock x:Name="TxtRouteTime" Text="—" Style="{StaticResource StatusValue}"/>
-                            <TextBlock Text="nodes visited  " Style="{StaticResource StatusLabel}"/>
-                            <TextBlock x:Name="TxtNodesVisited" Text="—" Style="{StaticResource StatusValue}"/>
-                        </StackPanel>
-                    </StackPanel>
-                </Border>
+                <ui:RouteInfoPanel x:Name="RouteInfoPanel" Grid.Row="2"/>
             </Grid>
         </Grid>
 
-        <!-- ========= -->
-        <!--  BOTTOM BAR -->
-        <!-- ========= -->
-        <Border Grid.Row="2"
-                Background="#13131A"
-                BorderBrush="#2A2A3D"
-                BorderThickness="0,1,0,0">
-            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0">
-                <TextBlock Text="res "    Style="{StaticResource StatusLabel}"/>
-                <TextBlock x:Name="TxtResolution"   Text="—"    Style="{StaticResource StatusValue}"/>
-                <TextBlock Text="zoom "  Style="{StaticResource StatusLabel}"/>
-                <TextBlock x:Name="TxtZoom"         Text="—"    Style="{StaticResource StatusValue}"/>
-                <TextBlock Text="center " Style="{StaticResource StatusLabel}"/>
-                <TextBlock x:Name="TxtCenter"       Text="—"    Style="{StaticResource StatusValue}"/>
-                <TextBlock Text="features " Style="{StaticResource StatusLabel}"/>
-                <TextBlock x:Name="TxtFeatures"     Text="—"    Style="{StaticResource StatusValue}"/>
-                <TextBlock Text="load " Style="{StaticResource StatusLabel}"/>
-                <TextBlock x:Name="TxtLoadTime"     Text="—"    Style="{StaticResource StatusValue}"/>
-            </StackPanel>
-        </Border>
+        <!-- BOTTOM BAR -->
+        <ui:BottomBar x:Name="BottomBar" Grid.Row="2"/>
     </Grid>
 </Window>
