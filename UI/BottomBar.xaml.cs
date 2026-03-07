@@ -3,10 +3,23 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Controls;
 
 namespace adaptive_offline_gps.UI
 {
-    public class BottomBar
+    public partial class BottomBar : UserControl
     {
+        public BottomBar() => InitializeComponent();
+
+        //  Called from the viewport callback in MainWindow
+        public void Update(double resolution, double zoom, double lon, double lat, int featureCount)
+        {
+            TxtResolution.Text  = $"{resolution:F1}";
+            TxtZoom.Text        = $"{zoom:F1}";
+            TxtCenter.Text      = $"{lat:F4}, {lon:F4}";
+            TxtFeatures.Text    = $"{featureCount}";
+        }
+
+        public void SetLoadTime(long ms) => TxtLoadTime.Text = $"{ms}ms";
     }
 }
