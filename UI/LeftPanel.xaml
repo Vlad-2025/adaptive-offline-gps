@@ -1,0 +1,70 @@
+<UserControl x:Class="adaptive_offline_gps.UI.LeftPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="clr-namespace:adaptive_offline_gps.UI">
+
+    <Border Background="#13131A"
+            BorderBrush="#2A2A3D"
+            BorderThickness="0,0,1,0">
+        <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="16,12">
+            <StackPanel>
+
+                <!-- MAP FILE -->
+                <TextBlock Style="{StaticResource SectionHeader}" Text="// MAP FILE"/>
+                <Border Background="#1A1A24" BorderBrush="#2A2A3D" BorderThickness="1" CornerRadius="4" Padding="10,8">
+                    <StackPanel>
+                        <TextBlock x:Name="TxtFilePath"
+                                   Text="no file selected"
+                                   Foreground="#3A3A5C" FontSize="10" FontFamily="Consolas"
+                                   TextWrapping="Wrap"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                            <TextBlock Text="nodes " Foreground="#3A3A5C" FontSize="10" FontFamily="Consolas"/>
+                            <TextBlock x:Name="TxtNodeCount" Text="—" Foreground="#4488FF" FontSize="10" FontFamily="Consolas"/>
+                            <TextBlock Text="   edges " Foreground="#3A3A5C" FontSize="10" FontFamily="Consolas"/>
+                            <TextBlock x:Name="TxtEdgeCount" Text="—" Foreground="#4488FF" FontSize="10" FontFamily="Consolas"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- ALGORITHM -->
+                <TextBlock Style="{StaticResource SectionHeader}" Text="// ALGORITHM"/>
+                <Border Background="#1A1A24" BorderBrush="#2A2A3D" BorderThickness="1" CornerRadius="4" Padding="10,8">
+                    <StackPanel>
+                        <ComboBox x:Name="CboAlgorithm"
+                                  Background="#1F1F2E" Foreground="#8888BB"
+                                  BorderBrush="#2A2A3D" FontFamily="Consolas" FontSize="11"
+                                  Margin="0,0,0,8">
+                            <ComboBoxItem Content="Dijkstra"          IsSelected="True"/>
+                            <ComboBoxItem Content="A*"/>
+                            <ComboBoxItem Content="Bidirectional A*"/>
+                            <ComboBoxItem Content="Genetic"/>
+                        </ComboBox>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                            <TextBlock Text="step delay " Foreground="#3A3A5C" FontSize="10" FontFamily="Consolas" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="TxtDelayValue" Text="20ms" Foreground="#00FF88" FontSize="10" FontFamily="Consolas" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <Slider x:Name="SliderDelay"
+                                Minimum="0" Maximum="200" Value="20"
+                                Foreground="#00FF88"
+                                ValueChanged="SliderDelay_ValueChanged"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- CONDITIONS -->
+                <TextBlock Style="{StaticResource SectionHeader}" Text="// CONDITIONS"/>
+                <Border Background="#1A1A24" BorderBrush="#2A2A3D" BorderThickness="1" CornerRadius="4" Padding="10,8">
+                    <StackPanel>
+                        <CheckBox x:Name="ChkRushHour"  Content="Rush hour"  Foreground="#8888BB" FontFamily="Consolas" FontSize="11" Margin="0,2"/>
+                        <CheckBox x:Name="ChkRoadWorks" Content="Road works" Foreground="#8888BB" FontFamily="Consolas" FontSize="11" Margin="0,2"/>
+                        <CheckBox x:Name="ChkSnow"      Content="Snow"       Foreground="#8888BB" FontFamily="Consolas" FontSize="11" Margin="0,2"/>
+                        <CheckBox x:Name="ChkRain"      Content="Rain"       Foreground="#8888BB" FontFamily="Consolas" FontSize="11" Margin="0,2"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- DEBUG CONSOLE (embedded) -->
+                <ui:DebugConsole x:Name="Console"/>
+
+            </StackPanel>
+        </ScrollViewer>
+    </Border>
+</UserControl>
