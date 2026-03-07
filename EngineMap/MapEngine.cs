@@ -60,7 +60,6 @@ namespace adaptive_offline_gps.EngineMap
 
             var lodSelector = new RoadLodSelector(index);
 
-            RoadGraph roadGraph;
             bool fromCache = false;
 
             if (!forceRebuild && RoadGraphSerializer.TryLoadCached(osmFilePath, out graph))
