@@ -1,5 +1,4 @@
-﻿using adaptive_offline_gps.Data;
-using BruTile.Wmts.Generated;
+﻿using BruTile.Wmts.Generated;
 using Mapsui.Nts;
 using NetTopologySuite.Geometries;
 using System;
@@ -9,7 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Threading;
 
-namespace adaptive_offline_gps
+namespace adaptive_offline_gps.Data
 {
     public class RoadLodSelector
     {

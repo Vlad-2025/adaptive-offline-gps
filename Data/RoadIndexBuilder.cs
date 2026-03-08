@@ -51,9 +51,6 @@ namespace adaptive_offline_gps.Data
                 stream.Position = 0;
                 source = new PBFOsmStreamSource(stream);
 
-                var allMajorLowGeometries = new List<Geometry>();
-
-
                 var majorWays = new List<Geometry>();
                 var mediumWays = new List<Geometry>();
                 var minorWays = new List<Geometry>();
