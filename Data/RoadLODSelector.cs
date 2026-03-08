@@ -24,12 +24,6 @@ namespace adaptive_offline_gps
         {
             var visible = new List<GeometryFeature>();
 
-            //if (resolution > 150)
-            //{
-            //    //visible.AddRange(_index.MajorLow.Query(envelope));
-            //    visible.Add(_index.MergedMajorLow);
-            //}
-            //else
             if(resolution > 5200)
             {
                 //  nothing, need to zoom in more to see the roads

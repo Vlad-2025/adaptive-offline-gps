@@ -1,12 +1,15 @@
 ﻿using Mapsui.Nts;
 using Mapsui.Projections;
 using NetTopologySuite.Geometries;
+using NetTopologySuite.Index.Strtree;
+using NetTopologySuite.Operation.Linemerge;
 using NetTopologySuite.Operation.Union;
 using NetTopologySuite.Simplify;
 using OsmSharp;
 using OsmSharp.Streams;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -48,7 +51,12 @@ namespace adaptive_offline_gps.Data
                 stream.Position = 0;
                 source = new PBFOsmStreamSource(stream);
 
-                //var allMajorLowGeometries = new List<Geometry>();
+                var allMajorLowGeometries = new List<Geometry>();
+
+
+                var majorWays = new List<Geometry>();
+                var mediumWays = new List<Geometry>();
+                var minorWays = new List<Geometry>();
 
                 //  Second pass: ways
                 foreach (var element in source)
@@ -69,54 +77,69 @@ namespace adaptive_offline_gps.Data
                             coords.Add(coord);
                     }
 
-                    if (coords.Count < 2) 
+                    if (coords.Count < 2)
                         continue;
 
                     var line = new LineString(coords.ToArray());
-
-                    var simplifiedLow       = DouglasPeuckerSimplifier.Simplify(line, 300);
-
-                    var simplifiedMedium    = DouglasPeuckerSimplifier.Simplify(line, 80);
-
-                    var fullFeature     = new GeometryFeature { Geometry = line };
-                    var lowFeature      = new GeometryFeature { Geometry = simplifiedLow };
-                    var mediumFeature   = new GeometryFeature { Geometry = simplifiedMedium };
 
                     var highwayType = way.Tags["highway"];
 
                     if (highwayType is "motorway" or "trunk")
                     {
-                        index.MajorFull.Insert(line.EnvelopeInternal, fullFeature);
-                        index.MajorLow.Insert(simplifiedLow.EnvelopeInternal, lowFeature);
-
-                        //allMajorLowGeometries.Add(simplifiedLow);
+                        majorWays.Add(line);
                     }
                     else if (highwayType is "primary" or "secondary")
                     {
-                        index.MediumFull.Insert(line.EnvelopeInternal, fullFeature);
-                        index.MediumLow.Insert(simplifiedMedium.EnvelopeInternal, mediumFeature);
+                        mediumWays.Add(line);
                     }
                     else
                     {
-                        index.Minor.Insert(line.EnvelopeInternal, fullFeature);
+                        minorWays.Add(line);
                     }
                 }
 
-                ////  This gives a 5-10fps increase at far zooms
-                //var factory = new GeometryFactory();
+                InsertMerged(index.MajorFull,   index.MajorLow,     majorWays, 300);
+                InsertMerged(index.MediumFull,  index.MediumLow,    mediumWays, 80);
 
-                //var multiLine = factory.CreateMultiLineString(allMajorLowGeometries
-                //                                                .OfType<LineString>()
-                //                                                .ToArray());
+                var minorMerger = new LineMerger();
 
-                //index.MergedMajorLow = new GeometryFeature
-                //{
-                //    Geometry = multiLine
-                //};
+                foreach(var g in minorWays)
+                    minorMerger.Add(g);
+
+                foreach(LineString merged in minorMerger.GetMergedLineStrings().Cast<LineString>())
+                {
+                    var f = new GeometryFeature { Geometry = merged };
+
+                    index.Minor.Insert(merged.EnvelopeInternal, f);
+                }
+
+                Debug.WriteLine($"major:  {majorWays.Count} ways → {index.MajorFull.Count} merged");
+                Debug.WriteLine($"medium: {mediumWays.Count} ways → {index.MediumFull.Count} merged");
+                Debug.WriteLine($"minor:  {minorWays.Count} ways → {index.Minor.Count} merged");
 
                 index.BuildAll();
                 return index;
             });
+    }
+    private void InsertMerged(
+        STRtree<GeometryFeature> fullTree,
+        STRtree<GeometryFeature> lowTree,
+        List<Geometry> ways,
+        double lowTolerance)
+        {
+            var merger = new LineMerger();
+
+            foreach (var w in ways)
+                merger.Add(w);
+
+            foreach (LineString merged in merger.GetMergedLineStrings().Cast<LineString>())
+            {
+                var simplified = DouglasPeuckerSimplifier.Simplify(merged, lowTolerance);
+
+                fullTree.Insert(merged.EnvelopeInternal, new GeometryFeature { Geometry = merged });
+
+                lowTree.Insert(simplified.EnvelopeInternal, new GeometryFeature { Geometry = simplified });
+            }
         }
     }
 }
