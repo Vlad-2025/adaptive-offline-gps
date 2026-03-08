@@ -17,6 +17,8 @@
             <TextBlock x:Name="TxtFeatures"   Text="-" Style="{StaticResource StatusValue}"/>
             <TextBlock Text="load "     Style="{StaticResource StatusLabel}"/>
             <TextBlock x:Name="TxtLoadTime"   Text="-" Style="{StaticResource StatusValue}"/>
+            <TextBlock Text="memory usage "     Style="{StaticResource StatusLabel}"/>
+            <TextBlock x:Name="TxtMemoryUsage"   Text="-" Style="{StaticResource StatusValue}"/>
         </StackPanel>
     </Border>
 </UserControl>

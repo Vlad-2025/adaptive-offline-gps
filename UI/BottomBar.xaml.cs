@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -18,6 +19,7 @@ namespace adaptive_offline_gps.UI
             TxtZoom.Text        = $"{zoom:F1}";
             TxtCenter.Text      = $"{lat:F4}, {lon:F4}";
             TxtFeatures.Text    = $"{featureCount}";
+            TxtMemoryUsage.Text = $"{Process.GetCurrentProcess().PrivateMemorySize64 / 1024 / 1024}mb";
         }
 
         public void SetLoadTime(long ms) => TxtLoadTime.Text = $"{ms}ms";
