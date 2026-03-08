@@ -48,7 +48,7 @@ namespace adaptive_offline_gps.Data
                 stream.Position = 0;
                 source = new PBFOsmStreamSource(stream);
 
-                var allMajorLowGeometries = new List<Geometry>();
+                //var allMajorLowGeometries = new List<Geometry>();
 
                 //  Second pass: ways
                 foreach (var element in source)
@@ -89,7 +89,7 @@ namespace adaptive_offline_gps.Data
                         index.MajorFull.Insert(line.EnvelopeInternal, fullFeature);
                         index.MajorLow.Insert(simplifiedLow.EnvelopeInternal, lowFeature);
 
-                        allMajorLowGeometries.Add(simplifiedLow);
+                        //allMajorLowGeometries.Add(simplifiedLow);
                     }
                     else if (highwayType is "primary" or "secondary")
                     {
@@ -102,17 +102,17 @@ namespace adaptive_offline_gps.Data
                     }
                 }
 
-                //  This gives a 5-10fps increase at far zooms
-                var factory = new GeometryFactory();
+                ////  This gives a 5-10fps increase at far zooms
+                //var factory = new GeometryFactory();
 
-                var multiLine = factory.CreateMultiLineString(allMajorLowGeometries
-                                                                .OfType<LineString>()
-                                                                .ToArray());
+                //var multiLine = factory.CreateMultiLineString(allMajorLowGeometries
+                //                                                .OfType<LineString>()
+                //                                                .ToArray());
 
-                index.MergedMajorLow = new GeometryFeature
-                {
-                    Geometry = multiLine
-                };
+                //index.MergedMajorLow = new GeometryFeature
+                //{
+                //    Geometry = multiLine
+                //};
 
                 index.BuildAll();
                 return index;
