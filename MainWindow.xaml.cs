@@ -20,6 +20,8 @@ using adaptive_offline_gps.EngineMap;
 using Microsoft.Extensions.Configuration;
 using adaptive_offline_gps.UI;
 using System.Diagnostics;
+using System.Windows.Media.Animation;
+using System.Windows.Threading;
 
 namespace adaptive_offline_gps
 {
@@ -140,8 +142,24 @@ namespace adaptive_offline_gps
         }
 
         //  =================== Map Sizing Constraints
-        private void MapContainer_SizeChanged(object sender, SizeChangedEventArgs e) => UpdateMapSquare();
+        private DispatcherTimer? _resizeDebounce;
 
+        //  Adds a delay for the animation, waiting for the user to stop resizing 
+        private void MapContainer_SizeChanged(object sender, SizeChangedEventArgs e)// => UpdateMapSquare();
+        {
+            _resizeDebounce?.Stop();
+            _resizeDebounce = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(50)
+            };
+            _resizeDebounce.Tick += (_, _) =>
+            {
+                _resizeDebounce.Stop();
+                UpdateMapSquare();
+            };
+
+            _resizeDebounce.Start();
+        }
         private void UpdateMapSquare()
         {
             double availableW = MapContainer.ActualWidth    - 40;
@@ -152,18 +170,36 @@ namespace adaptive_offline_gps
 
             var resolution = _mapEngine?.CurrentResolution ?? double.MaxValue;
 
+            double targetW, targetH;
+
             if(resolution > SquaredUntilResolution)
             {
                 double side = Math.Max(200, Math.Min(availableH, availableW));
 
-                MapBorder.Width = side;
-                MapBorder.Height = side;
+                targetW = side;
+                targetH = side;
             }
             else
             {
-                MapBorder.Width = Math.Max(200, availableW);
-                MapBorder.Height = Math.Max(200, availableH);
+                targetW = Math.Max(200, availableW);
+                targetH = Math.Max(200, availableH);
             }
+
+            //  Animation
+            var duration = TimeSpan.FromMilliseconds(300);
+            var easing = new CubicEase
+            {
+                EasingMode = EasingMode.EaseOut
+            };
+
+            MapBorder.BeginAnimation(FrameworkElement.WidthProperty, new DoubleAnimation(MapBorder.ActualWidth, targetW, duration){
+                EasingFunction = easing
+            });
+
+            MapBorder.BeginAnimation(FrameworkElement.HeightProperty, new DoubleAnimation(MapBorder.ActualHeight, targetH, duration)
+            {
+                EasingFunction = easing
+            });
         }
     }
 }
