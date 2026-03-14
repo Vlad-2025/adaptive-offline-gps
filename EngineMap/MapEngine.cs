@@ -21,7 +21,7 @@ namespace adaptive_offline_gps.EngineMap
     public delegate void GraphReadyCallback(int nodeCount, int edgeCount, bool fromCache);
     public delegate void ViewportChangedCallback(double resolution, double zoom, double centerLon,  double centerLat, int featureCount);
 
-    public class MapEngine
+    public class MapEngine : IDisposable
     {
         private readonly MapControl _mapControl;
         private readonly MemoryLayer _roadLayer;
@@ -135,6 +135,13 @@ namespace adaptive_offline_gps.EngineMap
             double lat = (2 * Math.Atan(Math.Exp(y / R)) - Math.PI / 2) * (180.0 / Math.PI);
         
             return (lon, lat);
+        }
+
+        public void Dispose()
+        {
+            _mapControl.Map.Navigator.ViewportChanged -= OnViewportChanged;
+            _roadLayer.Features = new List<IFeature>();
+            _mapControl.Map = new Map();
         }
     }
 }

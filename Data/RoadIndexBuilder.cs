@@ -95,6 +95,8 @@ namespace adaptive_offline_gps.Data
                     }
                 }
 
+                //  I tried using parallel, not much changed
+
                 InsertMerged(index.MajorFull,   index.MajorLow,     majorWays, 300);
                 InsertMerged(index.MediumFull,  index.MediumLow,    mediumWays, 80);
 

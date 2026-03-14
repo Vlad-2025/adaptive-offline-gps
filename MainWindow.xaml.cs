@@ -45,6 +45,7 @@ namespace adaptive_offline_gps
             TopBar.LoadFileRequested += OnLoadFileRequested;
             TopBar.BuildGraphRequested += OnBuildGraphRequested;
             TopBar.ClearRouteRequested += OnClearRouteRequested;
+            DownloadPanel.FileReady += DownloadPanel_FileReady;
 
             LeftPanel.Log("system ready");
             LeftPanel.Log("select a .osm.pbf file to begin");
@@ -55,10 +56,25 @@ namespace adaptive_offline_gps
         //  =================== TopBar event handlers
         private async void OnLoadFileRequested(string filePath)
         {
+            ResetToStartup();
+
+            //  Switch panels
+            DownloadPanel.Visibility = Visibility.Collapsed;
+            MapContainer.Visibility = Visibility.Visible;
+
             _osmFilePath = filePath;
             LeftPanel.SetFilePath(filePath);
-            
+
             await LoadMapAsync(filePath);
+        }
+        private void DownloadPanel_FileReady(string filePath)
+        {
+            DownloadPanel.Visibility = Visibility.Collapsed;
+            MapContainer.Visibility = Visibility.Visible;
+
+            _osmFilePath = filePath;
+            LeftPanel.SetFilePath(filePath);
+            _ = LoadMapAsync(filePath);
         }
 
         private async void OnBuildGraphRequested()
@@ -81,6 +97,25 @@ namespace adaptive_offline_gps
             LeftPanel.Log("route cleared");
 
             //  TODO: _mapEngine?.ClearRouteLayer();
+        }
+
+        //  =================== Download Panel
+        private void ResetToStartup()
+        {
+            if(_mapEngine != null)
+            {
+                _mapEngine.Dispose();
+                _mapEngine = null;
+            }
+
+            //  Switch panels
+            MapContainer.Visibility     = Visibility.Collapsed;
+            DownloadPanel.Visibility    = Visibility.Visible;
+
+            TopBar.SetStatus("NO MAP LOADED", "#3A3A5C");
+            TopBar.SetButtonsEnabled(true);
+            LeftPanel.SetGraphStats(0, 0);
+            LeftPanel.Log("map unloaded");
         }
 
         //  =================== Map Loading
@@ -142,6 +177,7 @@ namespace adaptive_offline_gps
         }
 
         //  =================== Map Sizing Constraints
+
         private DispatcherTimer? _resizeDebounce;
 
         //  Adds a delay for the animation, waiting for the user to stop resizing 

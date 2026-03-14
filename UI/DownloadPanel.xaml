@@ -1,0 +1,131 @@
+﻿<UserControl x:Class="adaptive_offline_gps.UI.DownloadPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="#0D0D0F">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Centre card -->
+        <StackPanel Grid.Row="0"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Width="460">
+
+            <!-- Title -->
+            <TextBlock Text="▸ ADAPTIVE GPS"
+                       Foreground="#00FF88" FontFamily="Consolas"
+                       FontSize="18" FontWeight="Bold" Margin="0,0,0,4"/>
+            <TextBlock Text="// offline routing and algorithm benchmarking"
+                       Foreground="#3A3A5C" FontFamily="Consolas"
+                       FontSize="11" Margin="0,0,0,32"/>
+
+            <!-- Option A: load existing file -->
+            <TextBlock Text="// LOAD EXISTING FILE"
+                       Style="{StaticResource SectionHeader}" Margin="0,0,0,6"/>
+            <Border Background="#13131A" BorderBrush="#2A2A3D"
+                    BorderThickness="1" CornerRadius="4" Padding="12,10">
+                <StackPanel>
+                    <TextBlock Text="select a previously downloaded .osm.pbf file"
+                               Foreground="#3A3A5C" FontFamily="Consolas"
+                               FontSize="10" Margin="0,0,0,8"/>
+                    <Button Content="[ BROWSE FILE ]"
+                            Style="{StaticResource AccentButton}"
+                            HorizontalAlignment="Left"
+                            Click="BtnBrowse_Click"/>
+                </StackPanel>
+            </Border>
+
+            <TextBlock Text="- or -"
+                       Foreground="#2A2A3D" FontFamily="Consolas"
+                       FontSize="10" HorizontalAlignment="Center"
+                       Margin="0,16,0,16"/>
+
+            <!-- Option B: download from Geofabrik -->
+            <TextBlock Text="// DOWNLOAD FROM GEOFABRIK"
+                       Style="{StaticResource SectionHeader}" Margin="0,0,0,6"/>
+            <Border Background="#13131A" BorderBrush="#2A2A3D"
+                    BorderThickness="1" CornerRadius="4" Padding="12,10">
+                <StackPanel>
+
+                    <!-- Level header with back button -->
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                        <Button x:Name="BtnBack" Content="◂ back"
+                                Style="{StaticResource TopBarButton}"
+                                Visibility="Collapsed" Margin="0,0,8,0"
+                                Click="BtnBack_Click"/>
+                        <TextBlock x:Name="TxtLevel" Text="// CONTINENTS"
+                                   Style="{StaticResource SectionHeader}" Margin="0"/>
+                    </StackPanel>
+
+                    <!-- Region combo -->
+                    <ComboBox x:Name="CboRegion"
+                              Background="#1F1F2E" Foreground="#8888BB"
+                              BorderBrush="#2A2A3D" FontFamily="Consolas" FontSize="11"
+                              Margin="0,0,0,10"
+                              SelectionChanged="CboRegion_SelectionChanged"/>
+
+                    <!-- File info row — shown once a downloadable region is selected -->
+                    <Border x:Name="FileInfoRow" Visibility="Collapsed" Margin="0,0,0,10">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="file  " Foreground="#3A3A5C"
+                                       FontFamily="Consolas" FontSize="10"
+                                       VerticalAlignment="Center"/>
+                            <TextBlock x:Name="TxtFileName" Text=""
+                                       Foreground="#4488FF" FontFamily="Consolas"
+                                       FontSize="10" VerticalAlignment="Center"/>
+                            <TextBlock Text="   size  " Foreground="#3A3A5C"
+                                       FontFamily="Consolas" FontSize="10"
+                                       VerticalAlignment="Center"/>
+                            <TextBlock x:Name="TxtFileSize" Text=""
+                                       Foreground="#4488FF" FontFamily="Consolas"
+                                       FontSize="10" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Action buttons -->
+                    <StackPanel Orientation="Horizontal">
+                        <Button x:Name="BtnDownload" Content="[ DOWNLOAD ]"
+                                Style="{StaticResource TopBarButton}"
+                                IsEnabled="False" Margin="0,0,6,0"
+                                Click="BtnDownload_Click"/>
+                        <Button x:Name="BtnDrillIn" Content="[ VIEW SUBREGIONS ▸ ]"
+                                Style="{StaticResource TopBarButton}"
+                                Visibility="Collapsed"
+                                Click="BtnDrillIn_Click"/>
+                    </StackPanel>
+
+                </StackPanel>
+            </Border>
+        </StackPanel>
+
+        <!-- Progress area pinned to bottom -->
+        <Border Grid.Row="1"
+                x:Name="ProgressArea"
+                Visibility="Collapsed"
+                Background="#13131A"
+                BorderBrush="#2A2A3D"
+                BorderThickness="0,1,0,0"
+                Padding="16,10">
+            <StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                    <TextBlock x:Name="TxtProgressLabel"
+                               Text="downloading…"
+                               Foreground="#8888BB" FontFamily="Consolas" FontSize="10"
+                               VerticalAlignment="Center"/>
+                    <TextBlock x:Name="TxtProgressDetail"
+                               Text=""
+                               Foreground="#3A3A5C" FontFamily="Consolas" FontSize="10"
+                               VerticalAlignment="Center" Margin="12,0,0,0"/>
+                </StackPanel>
+                <ProgressBar x:Name="ProgressBar"
+                             Height="4" Minimum="0" Maximum="1"
+                             Foreground="#00FF88" Background="#1A1A24"
+                             BorderThickness="0"/>
+            </StackPanel>
+        </Border>
+
+    </Grid>
+</UserControl>
