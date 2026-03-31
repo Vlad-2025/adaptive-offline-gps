@@ -17,8 +17,7 @@ namespace adaptive_offline_gps.UI
         private readonly GeofabrikScraper _scraper = new();
         private readonly MapDownloader _downloader = new();
 
-        //  =================== Navigation stack - lets user go back up the hierarchy
-        private readonly Stack<(string Title, string ParentId)> _navStack = new();
+        private readonly Stack<(string Title, string PageUrl)> _navStack = new();
         private List<GeofabrikRegion> _currentRegions = new();
         private GeofabrikRegion? _selectedRegion;
         private CancellationTokenSource? _cts;
@@ -31,47 +30,76 @@ namespace adaptive_offline_gps.UI
 
         private async void OnLoaded(object sender, RoutedEventArgs e)
         {
-            await LoadLevelAsync("continents", "");
+            try
+            {
+                await LoadLevelAsync("world", "https://download.geofabrik.de/index.html");
+            }
+            catch (Exception ex)
+            {
+                TxtLevel.Text = "// ERROR LOADING";
+                CboRegion.IsEnabled = false;
+                TxtOfflineMessage.Text = $"could not reach geofabrik: {ex.Message}";
+                TxtOfflineMessage.Visibility = Visibility.Visible;
+            }
         }
 
-        //  =================== Load a level of the hierarchy 
-        private async Task LoadLevelAsync(string title, string parentId)
+        //  Load a level
+        //  Track the current page URL so we can push it on drill-in
+        private string _currentPageUrl = "https://download.geofabrik.de/index.html";
+
+        private async Task LoadLevelAsync(string title, string pageUrl)
         {
+            CboRegion.SelectionChanged -= CboRegion_SelectionChanged;
+
             CboRegion.IsEnabled = false;
             CboRegion.ItemsSource = new[] { "loading…" };
             CboRegion.SelectedIndex = 0;
-            BtnBack.Visibility = _navStack.Count > 0
-                ? Visibility.Visible : Visibility.Collapsed;
+
+            //  Store raw title, no prefix here
             TxtLevel.Text = $"// {title.ToUpper()}";
+
+            BtnBack.Visibility = _navStack.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
 
             ResetSelection();
 
-            _currentRegions = string.IsNullOrEmpty(parentId)
-                ? await _scraper.GetContinentsAsync()
-                : await _scraper.GetChildrenAsync(parentId);
+            _currentRegions = await _scraper.GetRegionsAsync(pageUrl);
+            _currentPageUrl = pageUrl;  //  track where we are now
 
             CboRegion.ItemsSource = _currentRegions.ConvertAll(r =>
                 r.HasChildren ? $"{r.Name}  ▸" : r.Name);
+
             CboRegion.SelectedIndex = -1;
             CboRegion.IsEnabled = true;
+
+            CboRegion.SelectionChanged += CboRegion_SelectionChanged;
         }
 
-        //  =================== Region selected 
-        private void CboRegion_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        //  Region selected
+        private async void CboRegion_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (CboRegion.SelectedIndex < 0) return;
-            if (CboRegion.SelectedIndex >= _currentRegions.Count) return;
+            if (CboRegion.SelectedIndex < 0) 
+                return;
+
+            if (CboRegion.SelectedIndex >= _currentRegions.Count) 
+                return;
 
             _selectedRegion = _currentRegions[CboRegion.SelectedIndex];
 
-            //  Show file info if this region has a direct download
             if (_selectedRegion.PbfUrl != null)
             {
-                TxtFileName.Text = System.IO.Path.GetFileName(_selectedRegion.PbfUrl);
-                TxtFileSize.Text = _selectedRegion.SizeBytes > 0
-                    ? $"{_selectedRegion.SizeBytes / 1024.0 / 1024.0:F0} MB"
+                TxtFileName.Text = Path.GetFileName(_selectedRegion.PbfUrl);
+
+                //  Use size from table cell; fall back to scraping the region's own page
+                long size = _selectedRegion.SizeBytes;
+                if (size <= 0)
+                    size = await _scraper.GetPageFileSizeAsync(_selectedRegion.PageUrl);
+
+                TxtFileSize.Text = size > 0
+                    ? $"{size / 1024.0 / 1024.0:F0} MB"
                     : "size unknown";
+
                 FileInfoRow.Visibility = Visibility.Visible;
+
                 BtnDownload.IsEnabled = true;
             }
             else
@@ -80,28 +108,44 @@ namespace adaptive_offline_gps.UI
                 BtnDownload.IsEnabled = false;
             }
 
-            //  Show drill-in button if subregions exist
-            BtnDrillIn.Visibility = _selectedRegion.HasChildren
-                ? Visibility.Visible : Visibility.Collapsed;
+            //  Check for subregions lazily; only if flagged as potentially having children
+            if (_selectedRegion.HasChildren)
+            {
+                bool confirmed = await _scraper.HasSubregionsAsync(_selectedRegion.PageUrl);
+                BtnDrillIn.Visibility = confirmed
+                    ? Visibility.Visible : Visibility.Collapsed;
+            }
+            else
+            {
+                BtnDrillIn.Visibility = Visibility.Collapsed;
+            }
         }
 
-        //  =================== Drill into subregions 
+        //  Drill into subregions
         private async void BtnDrillIn_Click(object sender, RoutedEventArgs e)
         {
-            if (_selectedRegion == null) return;
-            _navStack.Push(($"back to {TxtLevel.Text}", _selectedRegion.Parent));
-            await LoadLevelAsync(_selectedRegion.Name, _selectedRegion.Id);
+            if (_selectedRegion == null) 
+                return;
+
+            //  Push where we are now so 'Back' can return here
+            //  Strip the "// " prefix before storing so LoadLevelAsync doesn't double it
+            var currentTitle = TxtLevel.Text.TrimStart('/', ' ');
+            _navStack.Push((currentTitle, _currentPageUrl));
+
+            await LoadLevelAsync(_selectedRegion.Name, _selectedRegion.PageUrl);
         }
 
-        //  =================== Back 
         private async void BtnBack_Click(object sender, RoutedEventArgs e)
         {
-            if (_navStack.Count == 0) return;
-            var (title, parentId) = _navStack.Pop();
-            await LoadLevelAsync(title, parentId);
+            if (_navStack.Count == 0) 
+                return;
+
+            var (title, pageUrl) = _navStack.Pop();
+
+            await LoadLevelAsync(title, pageUrl);
         }
 
-        //  =================== Browse existing file
+        //  Browse existing file
         private void BtnBrowse_Click(object sender, RoutedEventArgs e)
         {
             var dlg = new OpenFileDialog
@@ -109,19 +153,22 @@ namespace adaptive_offline_gps.UI
                 Title = "Select OSM PBF file",
                 Filter = "OSM PBF files (*.osm.pbf)|*.osm.pbf|All files (*.*)|*.*"
             };
-            if (dlg.ShowDialog() != true) return;
+
+            if (dlg.ShowDialog() != true) 
+                return;
+
             FileReady?.Invoke(dlg.FileName);
         }
 
-        //  =================== Download
+        //  Download
         private async void BtnDownload_Click(object sender, RoutedEventArgs e)
         {
-            if (_selectedRegion?.PbfUrl == null) return;
+            if (_selectedRegion?.PbfUrl == null) 
+                return;
 
-            //  Strip .osm.pbf before passing to SaveFileDialog
-            var baseName = System.IO.Path.GetFileName(_selectedRegion.PbfUrl)
-                               .Replace("-latest.osm.pbf", "")
-                               .Replace(".osm.pbf", "");
+            var baseName = Path.GetFileName(_selectedRegion.PbfUrl)
+                .Replace("-latest.osm.pbf", "")
+                .Replace(".osm.pbf", "");
 
             var dlg = new SaveFileDialog
             {
@@ -130,7 +177,9 @@ namespace adaptive_offline_gps.UI
                 Filter = "OSM PBF files (*.osm.pbf)|*.osm.pbf",
                 DefaultExt = "osm.pbf"
             };
-            if (dlg.ShowDialog() != true) return;
+
+            if (dlg.ShowDialog() != true) 
+                return;
 
             var destPath = dlg.FileName;
 
@@ -163,14 +212,13 @@ namespace adaptive_offline_gps.UI
 
                 await extractor.ExtractRoadsAsync(destPath, roadsPath, extractProgress);
 
-                System.IO.File.Delete(destPath);
+                File.Delete(destPath);
                 FileReady?.Invoke(roadsPath);
             }
             catch (OperationCanceledException)
             {
                 TxtProgressLabel.Text = "cancelled";
-                if (System.IO.File.Exists(destPath))
-                    System.IO.File.Delete(destPath);
+                if (File.Exists(destPath)) File.Delete(destPath);
             }
             catch (Exception ex)
             {
@@ -180,6 +228,7 @@ namespace adaptive_offline_gps.UI
             finally
             {
                 ProgressBar.IsIndeterminate = false;
+                BtnDrillIn.IsEnabled = true;
             }
         }
 

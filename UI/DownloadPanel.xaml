@@ -58,6 +58,15 @@
                                 Click="BtnBack_Click"/>
                         <TextBlock x:Name="TxtLevel" Text="// CONTINENTS"
                                    Style="{StaticResource SectionHeader}" Margin="0"/>
+
+						<TextBlock x:Name="TxtOfflineMessage"
+                                Visibility="Collapsed"
+                                Foreground="#FFB830"
+                                FontFamily="Consolas"
+                                FontSize="10"
+                                TextWrapping="Wrap"
+                                Margin="0,0,0,10"/>
+						
                     </StackPanel>
 
                     <!-- Region combo -->

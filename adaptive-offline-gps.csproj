@@ -11,11 +11,14 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="BruTile" Version="6.0.0" />
     <PackageReference Include="HtmlAgilityPack" Version="1.12.4" />
     <PackageReference Include="Mapsui" Version="5.0.2" />
+    <PackageReference Include="Mapsui.Nts" Version="5.0.2" />
     <PackageReference Include="Mapsui.Tiling" Version="5.0.2" />
     <PackageReference Include="Mapsui.Wpf" Version="5.0.2" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.3" />
+    <PackageReference Include="NetTopologySuite" Version="2.6.0" />
     <PackageReference Include="OsmSharp" Version="6.2.0" />
   </ItemGroup>
 
