@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using BruTile;
 using System.Windows.Controls;
 
 namespace adaptive_offline_gps.UI
@@ -11,28 +7,33 @@ namespace adaptive_offline_gps.UI
     {
         public RouteInfoPanel() => InitializeComponent();
 
+        public void SetStart(double lat, double lon)
+            => TxtStart.Text = $"{lat:F4}, {lon:F4}";
+
+        public void SetEnd(double lat, double lon)
+            => TxtEnd.Text = $"{lat:F4}, {lon:F4}";
+
         public void Update(double distanceKm, double timeSeconds, int nodesVisited)
         {
             TxtDistance.Text = $"{distanceKm:F1} km";
             TxtTime.Text = FormatTime(timeSeconds);
+            TxtNodes.Text = nodesVisited.ToString("N0");
         }
 
         public void Clear()
         {
-            TxtDistance.Text    = "-";
-            TxtTime.Text        = "-";
-            TxtNodes.Text       = "-";
+            TxtStart.Text = "—";
+            TxtEnd.Text = "—";
+            TxtDistance.Text = "—";
+            TxtTime.Text = "—";
+            TxtNodes.Text = "—";
         }
 
-        private static string FormatTime(double timeSeconds)
+        private static string FormatTime(double seconds)
         {
-            if (timeSeconds < 60)
-                return $"{timeSeconds:F0}s";
-
-            if (timeSeconds < 3600)
-                return $"{timeSeconds / 60:F0}m";
-
-            return $"{timeSeconds / 3600:F1}h";
+            if (seconds < 60) return $"{seconds:F0}s";
+            if (seconds < 3600) return $"{seconds / 60:F0}m";
+            return $"{seconds / 3600:F1}h";
         }
     }
 }

@@ -12,17 +12,12 @@
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="44"/>
-            <!-- Top bar    -->
             <RowDefinition Height="*"/>
-            <!-- Content    -->
             <RowDefinition Height="28"/>
-            <!-- Bottom bar -->
         </Grid.RowDefinitions>
 
-        <!-- TOP BAR -->
         <ui:TopBar x:Name="TopBar" Grid.Row="0"/>
 
-        <!-- MAIN CONTENT -->
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="300" MinWidth="240" MaxWidth="420"/>
@@ -30,60 +25,59 @@
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
-            <!-- Left panel: file info, algorithm picker, conditions, debug console -->
             <ui:LeftPanel x:Name="LeftPanel" Grid.Column="0"/>
 
-            <!-- Drag splitter -->
             <GridSplitter Grid.Column="1"
                           Width="4" HorizontalAlignment="Stretch"
                           Background="#1A1A24" ShowsPreview="False" Cursor="SizeWE"/>
 
-            <!-- Right side: map + route info -->
             <Grid Grid.Column="2" Background="#0D0D0F">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="*"/>
                     <RowDefinition Height="4"/>
-                    <RowDefinition Height="120"/>
+                    <RowDefinition Height="140"/>
                 </Grid.RowDefinitions>
 
-                <!-- Map container — square constraint applied in code-behind -->
-                <Grid Grid.Column="2" Background="#0D0D0F">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="*"/>
-                        <RowDefinition Height="4"/>
-                        <RowDefinition Height="120"/>
-                    </Grid.RowDefinitions>
-
-                    <!-- Both panels occupy the same cell — only one visible at a time -->
-                    <Border Grid.Row="0" x:Name="MapContainer"
-                            Background="#0D0D0F"
-                            SizeChanged="MapContainer_SizeChanged"
-                            Visibility="Collapsed">
-                        <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
-                            <Border x:Name="MapBorder"
-                                    BorderBrush="#2A2A3D" BorderThickness="1"
-                                    CornerRadius="4" ClipToBounds="True">
+                <!-- Map container — only one of MapContainer / DownloadPanel visible -->
+                <Border Grid.Row="0" x:Name="MapContainer"
+                        Background="#0D0D0F"
+                        SizeChanged="MapContainer_SizeChanged"
+                        Visibility="Collapsed">
+                    <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <Border x:Name="MapBorder"
+                                BorderBrush="#2A2A3D" BorderThickness="1"
+                                CornerRadius="4" ClipToBounds="True">
+                            <Grid>
                                 <mapsui:MapControl x:Name="mapControl"
                                                    HorizontalAlignment="Stretch"
                                                    VerticalAlignment="Stretch"/>
-                            </Border>
-                        </Grid>
-                    </Border>
+                                <!-- Canvas with no background = transparent to hits on empty area.
+                                     Popup child re-enables hit testing for its own buttons. -->
+                                <Canvas x:Name="MapOverlayCanvas">
+                                    <ui:MapClickPopup x:Name="MapPopup" Panel.ZIndex="10"/>
+                                    <!-- Dismiss overlay: sized + shown in code when popup opens -->
+                                    <Rectangle x:Name="PopupDismissOverlay"
+                                               Fill="Transparent"
+                                               Visibility="Collapsed"
+                                               Panel.ZIndex="9"/>
+                                </Canvas>
+                            </Grid>
+                        </Border>
+                    </Grid>
+                </Border>
 
-                    <ui:DownloadPanel x:Name="DownloadPanel"
-                                      Grid.Row="0"
-                                      Visibility="Visible"/>
+                <ui:DownloadPanel x:Name="DownloadPanel"
+                                  Grid.Row="0"
+                                  Visibility="Visible"/>
 
-                    <GridSplitter Grid.Row="1" Height="4"
-                                  HorizontalAlignment="Stretch"
-                                  Background="#1A1A24" Cursor="SizeNS"/>
+                <GridSplitter Grid.Row="1" Height="4"
+                              HorizontalAlignment="Stretch"
+                              Background="#1A1A24" Cursor="SizeNS"/>
 
-                    <ui:RouteInfoPanel x:Name="RouteInfoPanel" Grid.Row="2"/>
-                </Grid>
+                <ui:RouteInfoPanel x:Name="RouteInfoPanel" Grid.Row="2"/>
             </Grid>
         </Grid>
 
-        <!-- BOTTOM BAR -->
         <ui:BottomBar x:Name="BottomBar" Grid.Row="2"/>
     </Grid>
 </Window>

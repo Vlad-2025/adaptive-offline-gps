@@ -31,13 +31,25 @@ namespace adaptive_offline_gps.EngineMap
         private Envelope? _lastEnvelope;
         private double _lastResolution;
 
+        public NodeGridIndex? NodeIndex {  get; }
+        private RoadGraph _graph;
+
+        public RoadGraph Graph => _graph;
+
         public double CurrentResolution => _mapControl.Map?.Navigator?.Viewport.Resolution ?? double.MaxValue;
 
-        private MapEngine(MapControl mapControl, RoadLodSelector lodSelector, ViewportChangedCallback? onViewportChanged)
+        private MapEngine(
+            MapControl mapControl,
+            RoadLodSelector lodSelector,
+            ViewportChangedCallback? onViewportChanged,
+            NodeGridIndex nodeIndex,
+            RoadGraph graph)
         {
             _mapControl = mapControl;
             _lodSelector = lodSelector;
             _onViewportChanged = onViewportChanged;
+            NodeIndex = nodeIndex;
+            _graph = graph;
 
             var map = new Map();
 
@@ -87,7 +99,9 @@ namespace adaptive_offline_gps.EngineMap
 
             onGraphReady?.Invoke(graph.NodeCount, graph.EdgeCount, fromCache);
 
-            return new MapEngine(mapControl, lodSelector, onViewportChanged);
+            var nodeIndex = new NodeGridIndex(graph);
+
+            return new MapEngine(mapControl, lodSelector, onViewportChanged, nodeIndex, graph);
         }
 
         private void OnViewportChanged(object sender, EventArgs e)

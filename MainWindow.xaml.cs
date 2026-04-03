@@ -29,6 +29,7 @@ namespace adaptive_offline_gps
     {
         private MapEngine? _mapEngine;
         private string? _osmFilePath;
+        private MapRoutingController? _routingController;
 
         private static readonly double SquaredUntilResolution = 156543.0 / Math.Pow(2, 3);  //  cannot be const because pow is runtime
 
@@ -93,6 +94,9 @@ namespace adaptive_offline_gps
 
         private void OnClearRouteRequested()
         {
+            _routingController?.ClearPins();
+            MapPopup.Hide();
+
             RouteInfoPanel.Clear();
             LeftPanel.Log("route cleared");
 
@@ -161,6 +165,23 @@ namespace adaptive_offline_gps
                 LeftPanel.Log($"map ready   ({sw.ElapsedMilliseconds}ms)", DebugConsole.LogLevel.Ok);
 
                 TopBar.SetStatus("MAP LOADED", "#00FF88");
+
+                _routingController?.Detach();
+
+                _routingController = new MapRoutingController(
+                    mapControl,
+                    _mapEngine.NodeIndex!,
+                    _mapEngine.Graph,
+                    MapPopup,
+                    MapOverlayCanvas,
+                    PopupDismissOverlay,
+                    RouteInfoPanel
+                    );
+
+                _routingController.RouteReadyToRun += (startIdx, endIdx) =>
+                {
+                    LeftPanel.Log($"route {startIdx} -> {endIdx}", DebugConsole.LogLevel.Info);
+                };
             }
             catch (Exception ex)
             {

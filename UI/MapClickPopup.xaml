@@ -1,0 +1,55 @@
+<UserControl x:Class="adaptive_offline_gps.UI.MapClickPopup"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Visibility="Collapsed"
+             IsHitTestVisible="True">
+
+    <Border Background="#13131A"
+            BorderBrush="#2A2A3D"
+            BorderThickness="1"
+            CornerRadius="4"
+            Padding="0"
+            Width="160"
+            Effect="{x:Null}">
+        <StackPanel>
+
+            <!-- Header: coordinates -->
+            <Border Background="#1A1A24" CornerRadius="4,4,0,0" Padding="10,7">
+                <TextBlock x:Name="TxtCoords"
+                           Text="45.0000, 25.0000"
+                           Foreground="#3A3A5C" FontFamily="Consolas" FontSize="9"/>
+            </Border>
+
+            <!-- Actions -->
+            <StackPanel Margin="0,2,0,2">
+                <Button x:Name="BtnSetStart"
+                        Content="[ SET START ]"
+                        Style="{StaticResource TopBarButton}"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Left"
+                        Margin="4,2" Padding="8,5"
+                        Click="BtnSetStart_Click"/>
+
+                <Button x:Name="BtnSetEnd"
+                        Content="[ SET DESTINATION ]"
+                        Style="{StaticResource TopBarButton}"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Left"
+                        Margin="4,2" Padding="8,5"
+                        Click="BtnSetEnd_Click"/>
+
+                <Separator Background="#2A2A3D" Margin="8,4"/>
+
+                <Button x:Name="BtnDismiss"
+                        Content="dismiss"
+                        Background="Transparent" Foreground="#3A3A5C"
+                        BorderThickness="0" FontSize="9" FontFamily="Consolas"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Left"
+                        Cursor="Hand" Margin="12,2,4,6" Padding="0"
+                        Click="BtnDismiss_Click"/>
+            </StackPanel>
+
+        </StackPanel>
+    </Border>
+</UserControl>
