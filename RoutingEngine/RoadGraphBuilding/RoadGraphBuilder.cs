@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 using OsmSharp;
 using Mapsui.Utilities;
 
-namespace adaptive_offline_gps.RoutingEngine
+namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
 {
     public class RoadGraphBuilder
     {

@@ -13,7 +13,7 @@ namespace adaptive_offline_gps.UI
 
         public int NearestNodeIndex { get; private set; } = -1;
 
-        // Store coords so controller can read them after selection
+        //  Store coords so controller can read them after selection
         public double ClickLat { get; private set; }
         public double ClickLon { get; private set; }
 

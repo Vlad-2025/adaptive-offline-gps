@@ -15,6 +15,7 @@ using adaptive_offline_gps.RoutingEngine;
 using System.IO;
 using Mapsui.Projections;
 using Mapsui.Limiting;
+using adaptive_offline_gps.RoutingEngine.RoadGraphBuilding;
 
 namespace adaptive_offline_gps.EngineMap
 {
