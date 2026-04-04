@@ -16,6 +16,7 @@ using System.IO;
 using Mapsui.Projections;
 using Mapsui.Limiting;
 using adaptive_offline_gps.RoutingEngine.RoadGraphBuilding;
+using adaptive_offline_gps.RoutingEngine.GraphAlgorithms;
 
 namespace adaptive_offline_gps.EngineMap
 {
@@ -25,9 +26,10 @@ namespace adaptive_offline_gps.EngineMap
     public class MapEngine : IDisposable
     {
         private readonly MapControl _mapControl;
-        private readonly MemoryLayer _roadLayer;
+        private readonly MemoryLayer _roadLayer, _visitedLayer, _pathLayer;
         private readonly RoadLodSelector _lodSelector;
-        private readonly ViewportChangedCallback _onViewportChanged;
+        private readonly ViewportChangedCallback? _onViewportChanged;
+        public MapVisualizer? _mapVisualizer;
 
         private Envelope? _lastEnvelope;
         private double _lastResolution;
@@ -37,14 +39,18 @@ namespace adaptive_offline_gps.EngineMap
 
         public RoadGraph Graph => _graph;
 
+        public MapVisualizer Visualizer { get; }
+
         public double CurrentResolution => _mapControl.Map?.Navigator?.Viewport.Resolution ?? double.MaxValue;
 
-        private MapEngine(
+        private MapEngine
+            (
             MapControl mapControl,
             RoadLodSelector lodSelector,
             ViewportChangedCallback? onViewportChanged,
             NodeGridIndex nodeIndex,
-            RoadGraph graph)
+            RoadGraph graph
+            )
         {
             _mapControl = mapControl;
             _lodSelector = lodSelector;
@@ -56,8 +62,31 @@ namespace adaptive_offline_gps.EngineMap
 
             map.Layers.Add(Mapsui.Tiling.OpenStreetMap.CreateTileLayer());
 
-            _roadLayer = new MemoryLayer { Name = "Roads" };
+            _roadLayer      = new MemoryLayer { 
+                Name = "Roads"
+            };
+
             map.Layers.Add(_roadLayer);
+
+            _visitedLayer   = new MemoryLayer { 
+                Name = "Visited",
+                Style = null
+            };
+            _pathLayer      = new MemoryLayer { 
+                Name = "Path",
+                Style = null
+            };
+
+            map.Layers.Add(_visitedLayer);
+            map.Layers.Add(_pathLayer);
+
+            Visualizer = new MapVisualizer(
+                _mapControl, 
+                _graph, 
+                _visitedLayer, 
+                _pathLayer
+            );
+
 
             //  needs some work, maybe not
             map.Navigator.OverridePanBounds = new MRect(
@@ -155,8 +184,10 @@ namespace adaptive_offline_gps.EngineMap
         public void Dispose()
         {
             _mapControl.Map.Navigator.ViewportChanged -= OnViewportChanged;
-            _roadLayer.Features = new List<IFeature>();
-            _mapControl.Map = new Map();
+            _roadLayer.Features     = new List<IFeature>();
+            _mapControl.Map         = new Map();
+            _visitedLayer.Features  = Array.Empty<IFeature>();
+            _pathLayer.Features     = Array.Empty<IFeature>();
         }
     }
 }

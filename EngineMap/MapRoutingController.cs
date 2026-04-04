@@ -19,12 +19,12 @@ namespace adaptive_offline_gps.EngineMap
 {
     public class MapRoutingController
     {
-        private readonly MapControl _mapControl;
-        private readonly NodeGridIndex _nodeIndex;
-        private readonly RoadGraph _graph;
-        private readonly MapClickPopup _popup;
-        private readonly Canvas _overlayCanvas;
-        private readonly Rectangle _dismissOverlay;
+        private readonly MapControl     _mapControl;
+        private readonly NodeGridIndex  _nodeIndex;
+        private readonly RoadGraph      _graph;
+        private readonly MapClickPopup  _popup;
+        private readonly Canvas         _overlayCanvas;
+        private readonly Rectangle      _dismissOverlay;
         private readonly RouteInfoPanel _routeInfoPanel;
 
         private readonly MemoryLayer _startLayer = new() { Name = "StartPin" };

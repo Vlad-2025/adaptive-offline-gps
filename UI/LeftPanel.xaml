@@ -61,6 +61,27 @@
                     </StackPanel>
                 </Border>
 
+                <!-- RUN -->
+                <TextBlock Style="{StaticResource SectionHeader}" Text="// ROUTING" Margin="0,12,0,6"/>
+                <Border Background="#1A1A24" BorderBrush="#2A2A3D" BorderThickness="1" CornerRadius="4" Padding="10,8">
+                    <StackPanel>
+                        <Button x:Name="BtnRun"
+                            Content="[ RUN ]"
+                            Style="{StaticResource AccentButton}"
+                            IsEnabled="False"
+                            HorizontalAlignment="Stretch"
+                            Click="BtnRun_Click"/>
+
+                        <Button x:Name="BtnCancel"
+                            Content="[ CANCEL ]"
+                            Style="{StaticResource TopBarButton}"
+                            Visibility="Collapsed"
+                            HorizontalAlignment="Stretch"
+                            Margin="0,4,0,0"
+                            Click="BtnCancel_Click"/>
+                    </StackPanel>
+                </Border>
+
                 <!-- DEBUG CONSOLE (embedded) -->
                 <ui:DebugConsole x:Name="Console"/>
 

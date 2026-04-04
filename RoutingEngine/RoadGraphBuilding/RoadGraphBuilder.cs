@@ -155,7 +155,7 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
             return g;
         }
 
-        private static float Haversine((float lat, float lon) a, (float lat, float lon) b)
+        public static float Haversine((float lat, float lon) a, (float lat, float lon) b)
         {
             const float R = 6_378_100;  //  meters
 

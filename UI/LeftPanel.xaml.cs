@@ -22,6 +22,18 @@ namespace adaptive_offline_gps.UI
             TxtEdgeCount.Text = edgeCount.ToString("N0");
         }
 
+        public event Action? RunRequested;
+        public event Action? CancelRequested;
+
+        public void SetRunEnabled(bool enabled)
+            => BtnRun.IsEnabled = enabled;
+
+        public void SetRunning(bool running)
+        {
+            BtnRun.IsEnabled = !running;
+            BtnCancel.Visibility = running ? Visibility.Visible : Visibility.Collapsed;
+        }
+
         //  Forwarded to the DebugConsole
         public void Log(string message, DebugConsole.LogLevel level = DebugConsole.LogLevel.Info) => Console.Log(message, level);
 
@@ -41,5 +53,11 @@ namespace adaptive_offline_gps.UI
             if (TxtDelayValue != null)
                 TxtDelayValue.Text = $"{(int)e.NewValue}ms";
         }
+
+        private void BtnRun_Click(object sender, RoutedEventArgs e)
+            => RunRequested?.Invoke();
+
+        private void BtnCancel_Click(object sender, RoutedEventArgs e)
+            => CancelRequested?.Invoke();
     }
 }
