@@ -149,11 +149,12 @@ namespace adaptive_offline_gps
                 weights = BaseWeightProvider.Instance;
             }
 
+            LeftPanel.Log($"algorithm: '{LeftPanel.SelectedAlgorithm}'");
             // Pick algorithm from combo
             IRoutingAlgorithm algo = LeftPanel.SelectedAlgorithm switch
             {
                 "Dijkstra"          => new DijkstraAlgorithm(),
-                //"A*"                => new AStarAlgorithm(),
+                "A*"                => new AStarAlgorithm(),
                 //"Bidirectional A*"  => new BidirectionalAStarAlgorithm(),
                 //"Genetic"           => new GeneticAlgorithm(),
                 _                   => new DijkstraAlgorithm(),

@@ -76,7 +76,7 @@ namespace adaptive_offline_gps.EngineMap
             _visitCount++;
 
             //  Batch redraws to avoid hammering the renderer
-            if (_visitCount % RedrawEvery == 0)
+            if (_visitCount % GetRedrawInterval() == 0)
             {
                 FadeOlderNodes();
                 _visitedLayer.Features = new List<GeometryFeature>(_visitedFeatures);
@@ -184,6 +184,14 @@ namespace adaptive_offline_gps.EngineMap
                     style.Outline = new Pen(color, 0);
                 }
             }
+        }
+
+        private int GetRedrawInterval()
+        {
+            // Refresh less often when there are many features already
+            if (_visitCount < 500) return 20;
+            if (_visitCount < 2000) return 50;
+            return 150;
         }
 
         private static Mapsui.Styles.Color LerpColor(

@@ -1,22 +1,23 @@
-﻿using Mapsui.Layers;
-using Mapsui.UI.Wpf;
+﻿using adaptive_offline_gps.Data;
+using adaptive_offline_gps.RoutingEngine;
+using adaptive_offline_gps.RoutingEngine.GraphAlgorithms;
+using adaptive_offline_gps.RoutingEngine.RoadGraphBuilding;
 using Mapsui;
+using Mapsui.Extensions;
+using Mapsui.Layers;
+using Mapsui.Limiting;
+using Mapsui.Projections;
+using Mapsui.Styles;
+using Mapsui.UI.Wpf;
+using NetTopologySuite.Geometries;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using adaptive_offline_gps.Data;
-using Mapsui.Extensions;
-using NetTopologySuite.Geometries;
-using System.Windows.Threading;
 using System.Windows;
-using adaptive_offline_gps.RoutingEngine;
-using System.IO;
-using Mapsui.Projections;
-using Mapsui.Limiting;
-using adaptive_offline_gps.RoutingEngine.RoadGraphBuilding;
-using adaptive_offline_gps.RoutingEngine.GraphAlgorithms;
+using System.Windows.Threading;
 
 namespace adaptive_offline_gps.EngineMap
 {
@@ -70,7 +71,13 @@ namespace adaptive_offline_gps.EngineMap
 
             _visitedLayer   = new MemoryLayer { 
                 Name = "Visited",
-                Style = null
+                Style = new SymbolStyle
+                {
+                    Fill = new Brush(new Mapsui.Styles.Color(68, 136, 255, 180)), // alpha=180
+                    Outline = new Pen(new Mapsui.Styles.Color(0, 0, 0, 0), 0),
+                    SymbolScale = 0.12,
+                    SymbolType = SymbolType.Ellipse,
+                }
             };
             _pathLayer      = new MemoryLayer { 
                 Name = "Path",
