@@ -32,7 +32,7 @@ namespace adaptive_offline_gps.EngineMap
         private readonly List<GeometryFeature> _visitedFeatures = new();
         private int _visitCount;
         private const int RedrawEvery = 50;
-        private const int MaxRenderedVisited = 2000;
+        private const int MaxRenderedVisited = 1000;
 
         private static readonly Mapsui.Styles.Color ColPath = new(0, 220, 100);     // green
         private static readonly Mapsui.Styles.Color ColPathOut = new(13, 13, 15);  // border

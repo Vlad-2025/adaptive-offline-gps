@@ -12,6 +12,7 @@ using Mapsui.UI.Wpf;
 using NetTopologySuite.Geometries;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -35,12 +36,18 @@ namespace adaptive_offline_gps.EngineMap
         private Envelope? _lastEnvelope;
         private double _lastResolution;
 
-        public NodeGridIndex? NodeIndex {  get; }
+        public  NodeGridIndex? NodeIndex {  get; }
+
+        //  Road Graph
         private RoadGraph _graph;
+        public  RoadGraph Graph => _graph;
 
-        public RoadGraph Graph => _graph;
+        //  Contraction Hierarchies graf
+        private CHGraph _chGraph;
+        public  CHGraph ChGraph => _chGraph;
 
-        public MapVisualizer Visualizer { get; }
+
+        public  MapVisualizer Visualizer { get; }
 
         public double CurrentResolution => _mapControl.Map?.Navigator?.Viewport.Resolution ?? double.MaxValue;
 
@@ -50,7 +57,8 @@ namespace adaptive_offline_gps.EngineMap
             RoadLodSelector lodSelector,
             ViewportChangedCallback? onViewportChanged,
             NodeGridIndex nodeIndex,
-            RoadGraph graph
+            RoadGraph graph,
+            CHGraph chGraph
             )
         {
             _mapControl = mapControl;
@@ -58,6 +66,7 @@ namespace adaptive_offline_gps.EngineMap
             _onViewportChanged = onViewportChanged;
             NodeIndex = nodeIndex;
             _graph = graph;
+            _chGraph = chGraph;
 
             var map = new Map();
 
@@ -107,18 +116,19 @@ namespace adaptive_offline_gps.EngineMap
         }
 
         public static async Task<MapEngine> CreateAsync(
-            MapControl mapControl, string osmFilePath, bool forceRebuild = false, 
-            GraphReadyCallback? onGraphReady = null, 
-            ViewportChangedCallback? onViewportChanged = null)
+                MapControl mapControl, string osmFilePath, bool forceRebuild = false, 
+                GraphReadyCallback? onGraphReady = null, 
+                ViewportChangedCallback? onViewportChanged = null,
+                Action<string>? onStatusUpdate = null
+            )
         {
-            RoadGraph graph;
-
             var indexBuilder = new RoadIndexBuilder();
 
             var index = await indexBuilder.BuildAsync(osmFilePath);
 
             var lodSelector = new RoadLodSelector(index);
-
+            
+            RoadGraph graph;
             bool fromCache = false;
 
             if (!forceRebuild && RoadGraphSerializer.TryLoadCached(osmFilePath, out graph))
@@ -134,11 +144,36 @@ namespace adaptive_offline_gps.EngineMap
                 RoadGraphSerializer.Save(graph, Path.ChangeExtension(osmFilePath, ".rgph"));
             }
 
+            CHGraph chGraph;
+            bool chFromChace = false;
+
+            if (!forceRebuild && CHGraphSerializer.TryLoadCached(osmFilePath, graph, out chGraph))
+            {
+                chFromChace = true;
+            }
+            else
+            {
+                //onGraphReady?.Invoke(graph.NodeCount, graph.EdgeCount, fromCache);
+
+                onStatusUpdate?.Invoke("building contraction hierarchy...");
+
+                var preprocessor = new CHPreprocessor();
+
+                chGraph = preprocessor.Preprocess(graph);
+
+                onStatusUpdate?.Invoke("saving CH cache");
+
+                CHGraphSerializer.Save(chGraph, Path.ChangeExtension(osmFilePath, ".chgr"));
+
+                int shortcuts = chGraph.UpAdj.Sum(a => a.Count(e => e.ShortcutMid != -1));
+                Debug.WriteLine($"CH has {shortcuts} shortcuts");
+            }
+
             onGraphReady?.Invoke(graph.NodeCount, graph.EdgeCount, fromCache);
 
             var nodeIndex = new NodeGridIndex(graph);
 
-            return new MapEngine(mapControl, lodSelector, onViewportChanged, nodeIndex, graph);
+            return new MapEngine(mapControl, lodSelector, onViewportChanged, nodeIndex, graph, chGraph);
         }
 
         private void OnViewportChanged(object sender, EventArgs e)

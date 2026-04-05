@@ -153,16 +153,26 @@ namespace adaptive_offline_gps
             // Pick algorithm from combo
             IRoutingAlgorithm algo = LeftPanel.SelectedAlgorithm switch
             {
-                "Dijkstra"          => new DijkstraAlgorithm(),
-                "A*"                => new AStarAlgorithm(),
-                //"Bidirectional A*"  => new BidirectionalAStarAlgorithm(),
-                //"Genetic"           => new GeneticAlgorithm(),
-                _                   => new DijkstraAlgorithm(),
+                "Dijkstra"                  => new DijkstraAlgorithm(),
+                "A*"                        => new AStarAlgorithm(),
+                //"Bidirectional A*"        => new BidirectionalAStarAlgorithm(),
+                //"Genetic"                 => new GeneticAlgorithm(),
+                "Contraction Hierarchies"   => new CHAlgorithmWrapper(_mapEngine.ChGraph),
+                _                           => new DijkstraAlgorithm(),
             };
 
             //  Reset visualization layers
             _mapVisualizer?.SetOptions(options);
             _mapVisualizer?.Reset();
+
+            if (algo is CHAlgorithmWrapper)
+            {
+                CHDebugVerifier.Verify(
+                    _mapEngine.Graph,
+                    _mapEngine.ChGraph,
+                    _routingController.StartNodeIndex,
+                    _routingController.EndNodeIndex);
+            }
 
             try
             {
@@ -267,7 +277,11 @@ namespace adaptive_offline_gps
                             BottomBar.Update(resolution, zoom, lon, lat, featureCount);
                             UpdateMapSquare();
                         });
-                    });
+                    },
+                    onStatusUpdate: msg => Dispatcher.Invoke(() => 
+                        LeftPanel.Log(msg, DebugConsole.LogLevel.Info)
+                        )
+                    );
 
                 sw.Stop();
 
