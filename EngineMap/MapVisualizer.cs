@@ -32,6 +32,7 @@ namespace adaptive_offline_gps.EngineMap
         private readonly List<GeometryFeature> _visitedFeatures = new();
         private int _visitCount;
         private const int RedrawEvery = 50;
+        private const int MaxRenderedVisited = 2000;
 
         private static readonly Mapsui.Styles.Color ColPath = new(0, 220, 100);     // green
         private static readonly Mapsui.Styles.Color ColPathOut = new(13, 13, 15);  // border
@@ -78,8 +79,14 @@ namespace adaptive_offline_gps.EngineMap
             //  Batch redraws to avoid hammering the renderer
             if (_visitCount % GetRedrawInterval() == 0)
             {
-                FadeOlderNodes();
-                _visitedLayer.Features = new List<GeometryFeature>(_visitedFeatures);
+                //  Only render the last N visited nodes - older ones stay as permanent dim dots
+                //  or are dropped entirely. The path at the end shows where the algo went.
+                var toRender = _visitedFeatures.Count <= MaxRenderedVisited
+                    ? _visitedFeatures
+                    : _visitedFeatures.GetRange(
+                        _visitedFeatures.Count - MaxRenderedVisited, MaxRenderedVisited);
+
+                _visitedLayer.Features = new List<GeometryFeature>(toRender);
                 _mapControl.Refresh();
             }
 
@@ -120,16 +127,29 @@ namespace adaptive_offline_gps.EngineMap
 
             _pathLayer.Features = new[] { feature };
 
-            //  Final flush of visited dots
-            _visitedLayer.Features = new List<GeometryFeature>(_visitedFeatures);
-            _mapControl.Refresh();
+            //  Only keep last 2000 visited dots — clear the rest
+            var lastVisited = _visitedFeatures.Count <= MaxRenderedVisited
+                ? new List<GeometryFeature>(_visitedFeatures)
+                : _visitedFeatures.GetRange(
+                    _visitedFeatures.Count - MaxRenderedVisited, MaxRenderedVisited);
 
+            _visitedLayer.Features = lastVisited;
+
+            // Free the full list — path line is now the visual record
+            _visitedFeatures.Clear();
+
+            _mapControl.Refresh();
             return Task.CompletedTask;
         }
 
         public Task OnNoPathFound()
         {
-            _visitedLayer.Features = new List<GeometryFeature>(_visitedFeatures);
+            var lastVisited = _visitedFeatures.Count <= MaxRenderedVisited
+                ? new List<GeometryFeature>(_visitedFeatures)
+                : _visitedFeatures.GetRange(_visitedFeatures.Count - MaxRenderedVisited, MaxRenderedVisited);
+
+            _visitedLayer.Features = lastVisited;
+            _visitedFeatures.Clear();
             _mapControl.Refresh();
             return Task.CompletedTask;
         }
