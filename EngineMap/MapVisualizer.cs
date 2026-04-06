@@ -109,15 +109,49 @@ namespace adaptive_offline_gps.EngineMap
             if (pathNodes.Length < 2) return Task.CompletedTask;
 
             //  Build a LineString from the path node coordinates
-            var coords = new Coordinate[pathNodes.Length];
+            var coordList = new List<Coordinate>();
 
             for (int i = 0; i < pathNodes.Length; i++)
             {
+                if (i > 0)
+                {
+                    // Try to find the edge from pathNodes[i-1] to pathNodes[i]
+                    // and insert its pillar geometry
+                    int from = pathNodes[i - 1];
+                    int to = pathNodes[i];
+
+                    bool foundEdge = false;
+
+                    for (int e = _graph.EdgeHead[from]; e < _graph.EdgeHead[from + 1]; e++)
+                    {
+                        if (_graph.EdgeTarget[e] == to)
+                        {
+                            // Insert pillar nodes for this edge
+                            var pillarLat = _graph.EdgeGeomLat[e];
+                            var pillarLon = _graph.EdgeGeomLon[e];
+
+                            if (pillarLat != null)
+                            {
+                                for (int p = 0; p < pillarLat.Length; p++)
+                                {
+                                    var (pmx, pmy) = SphericalMercator.FromLonLat(pillarLon[p], pillarLat[p]);
+                                    coordList.Add(new Coordinate(pmx, pmy));
+                                }
+                            }
+
+                            foundEdge = true;
+                            break;
+                        }
+                    }
+                }
+
+                // Add the junction node itself
                 var (mx, my) = NodeToMercator(pathNodes[i]);
-                coords[i] = new Coordinate(mx, my);
+                coordList.Add(new Coordinate(mx, my));
             }
 
-            var line = new LineString(coords);
+            var line = new LineString(coordList.ToArray());
+
             var feature = new GeometryFeature { Geometry = line };
 
             feature.Styles.Add(new VectorStyle

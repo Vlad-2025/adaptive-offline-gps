@@ -1,86 +1,125 @@
 ﻿using System;
-using System.Collections.Generic;
 using adaptive_offline_gps.RoutingEngine.RoadGraphBuilding;
 
 namespace adaptive_offline_gps.RoutingEngine
 {
+    /// <summary>
+    /// Spatial grid index for fast nearest-node lookup on map clicks.
+    /// 
+    /// Indexes ALL road nodes (junctions + pillar nodes) so users can click
+    /// anywhere on a road. Each node maps to its nearest junction node
+    /// for routing purposes.
+    /// 
+    /// Usage:
+    ///   int junctionIdx = FindNearestJunction(lat, lon);
+    ///   // use junctionIdx as start/end for routing
+    /// </summary>
     public class NodeGridIndex
     {
-        private readonly RoadGraph _graph;
-        private readonly int _gridSize;
-        private readonly int[][] _cells;      // _cells[cellIndex] = array of node indices
+        private readonly float[] _allLat;
+        private readonly float[] _allLon;
+        private readonly int[] _nearestJunction;   // allNodeIdx → junction graph index
+        private readonly RoadGraph _graph;          // for junction coords (pin placement)
 
-        //  Bounding box of all nodes
+        private readonly int _gridSize;
+        private readonly int[][] _cells;
+
         private readonly float _minLat, _minLon;
         private readonly float _latRange, _lonRange;
 
-        public NodeGridIndex(RoadGraph graph, int gridSize = 512)
+        /// <summary>
+        /// Create index over all road nodes.
+        /// </summary>
+        /// <param name="graph">The junction-only road graph</param>
+        /// <param name="allLat">Latitudes of ALL road nodes (junctions + pillars)</param>
+        /// <param name="allLon">Longitudes of ALL road nodes</param>
+        /// <param name="nearestJunction">Maps each all-node index to its nearest junction index in the graph</param>
+        /// <param name="gridSize">Grid resolution</param>
+        public NodeGridIndex(
+            RoadGraph graph,
+            float[] allLat, float[] allLon, int[] nearestJunction,
+            int gridSize = 512)
         {
             _graph = graph;
+            _allLat = allLat;
+            _allLon = allLon;
+            _nearestJunction = nearestJunction;
             _gridSize = gridSize;
 
-            //  1) Find bounding box
-            _minLat         = float.MaxValue; _minLon   = float.MaxValue;
+            int totalNodes = allLat.Length;
 
-            float maxLat    = float.MinValue, maxLon    = float.MinValue;
+            // Find bounding box
+            _minLat = float.MaxValue; _minLon = float.MaxValue;
+            float maxLat = float.MinValue, maxLon = float.MinValue;
 
-            for (int i = 0; i < graph.NodeCount; i++)
+            for (int i = 0; i < totalNodes; i++)
             {
-                float lat = graph.NodeLat[i];
-                float lon = graph.NodeLon[i];
-
-                if (lat < _minLat) 
-                    _minLat = lat;
-
-                if (lat > maxLat) 
-                    maxLat = lat;
-
-                if (lon < _minLon) 
-                    _minLon = lon;
-
-                if (lon > maxLon) 
-                    maxLon = lon;
+                float lat = allLat[i], lon = allLon[i];
+                if (lat < _minLat) _minLat = lat;
+                if (lat > maxLat) maxLat = lat;
+                if (lon < _minLon) _minLon = lon;
+                if (lon > maxLon) maxLon = lon;
             }
 
-            //  Small padding so nodes exactly on the edge land inside the grid
             _minLat -= 0.0001f; _minLon -= 0.0001f;
-            maxLat  += 0.0001f; maxLon  += 0.0001f;
-
+            maxLat += 0.0001f; maxLon += 0.0001f;
             _latRange = maxLat - _minLat;
             _lonRange = maxLon - _minLon;
 
-            //  2) Count nodes per cell (two-pass avoids realloc)
+            // Count nodes per cell
             var counts = new int[gridSize * gridSize];
+            for (int i = 0; i < totalNodes; i++)
+                counts[CellIndex(allLat[i], allLon[i])]++;
 
-            for (int i = 0; i < graph.NodeCount; i++)
-            {
-                int idx = CellIndex(graph.NodeLat[i], graph.NodeLon[i]);
-                counts[idx]++;
-            }
-
-            //  3) Allocate buckets exactly sized
+            // Allocate
             _cells = new int[gridSize * gridSize][];
             for (int c = 0; c < _cells.Length; c++)
                 if (counts[c] > 0)
                     _cells[c] = new int[counts[c]];
 
-            //  4) Fill buckets 
+            // Fill
             var cursors = new int[gridSize * gridSize];
-
-            for (int i = 0; i < graph.NodeCount; i++)
+            for (int i = 0; i < totalNodes; i++)
             {
-                int idx = CellIndex(graph.NodeLat[i], graph.NodeLon[i]);
+                int idx = CellIndex(allLat[i], allLon[i]);
                 _cells[idx][cursors[idx]++] = i;
             }
         }
 
-        //  Public API 
+        /// <summary>
+        /// Backwards-compatible constructor: indexes junction nodes only.
+        /// Used when AllNodeLat/Lon aren't available (e.g. loaded from old cache).
+        /// </summary>
+        public NodeGridIndex(RoadGraph graph, int gridSize = 512)
+            : this(graph, graph.NodeLat, graph.NodeLon,
+                   CreateIdentityMapping(graph.NodeCount), gridSize)
+        {
+        }
+
+        private static int[] CreateIdentityMapping(int count)
+        {
+            var map = new int[count];
+            for (int i = 0; i < count; i++) map[i] = i;
+            return map;
+        }
 
         /// <summary>
-        /// Returns the index of the graph node closest to (lat, lon).
-        /// Expands search ring outward until at least one candidate is found.
+        /// Find the nearest road node to (lat, lon) and return its junction index
+        /// in the routing graph. This is what you use for start/end node selection.
         /// </summary>
         public int FindNearestNode(double lat, double lon)
+        {
+            int allNodeIdx = FindNearestAllNode(lat, lon);
+            if (allNodeIdx < 0) return -1;
+
+            return _nearestJunction[allNodeIdx];
+        }
+
+        /// <summary>
+        /// Find the nearest road node (any node, not just junction).
+        /// Returns the all-node compact index.
+        /// </summary>
+        private int FindNearestAllNode(double lat, double lon)
         {
             int targetRow = LatToRow((float)lat);
             int targetCol = LonToCol((float)lon);
@@ -88,26 +127,20 @@ namespace adaptive_offline_gps.RoutingEngine
             int bestNode = -1;
             float bestDist = float.MaxValue;
 
-            //  Expand search ring: ring 0 = target cell only, ring 1 = 3×3, etc
             for (int ring = 0; ring <= _gridSize; ring++)
             {
-                //  Once we've found a candidate and the ring is wider than the
-                //  best distance, no closer node can exist in outer rings
                 if (bestNode >= 0 && RingIsDefinitelyFarther(ring, targetRow, targetCol, bestDist))
                     break;
 
                 SearchRing(ring, targetRow, targetCol,
                     (float)lat, (float)lon, ref bestNode, ref bestDist);
 
-                //  Found something and checked at least one full ring beyond — done
                 if (bestNode >= 0 && ring > 0)
                     break;
             }
 
             return bestNode;
         }
-
-        //  Private helpers 
 
         private void SearchRing(int ring, int centerRow, int centerCol,
             float lat, float lon, ref int bestNode, ref float bestDist)
@@ -118,7 +151,6 @@ namespace adaptive_offline_gps.RoutingEngine
                 return;
             }
 
-            //  Walk the perimeter of the ring square
             int rMin = centerRow - ring, rMax = centerRow + ring;
             int cMin = centerCol - ring, cMax = centerCol + ring;
 
@@ -126,10 +158,8 @@ namespace adaptive_offline_gps.RoutingEngine
             {
                 for (int c = cMin; c <= cMax; c++)
                 {
-                    //  Only visit cells ON the perimeter (not interior -> already searched)
-                    if (r != rMin && r != rMax && c != cMin && c != cMax) 
+                    if (r != rMin && r != rMax && c != cMin && c != cMax)
                         continue;
-
                     SearchCell(r, c, lat, lon, ref bestNode, ref bestDist);
                 }
             }
@@ -138,21 +168,16 @@ namespace adaptive_offline_gps.RoutingEngine
         private void SearchCell(int row, int col,
             float lat, float lon, ref int bestNode, ref float bestDist)
         {
-            //  Clamp to grid bounds
-            if (row < 0 || row >= _gridSize || col < 0 || col >= _gridSize) 
+            if (row < 0 || row >= _gridSize || col < 0 || col >= _gridSize)
                 return;
 
             var bucket = _cells[row * _gridSize + col];
-
-            if (bucket == null) 
-                return;
+            if (bucket == null) return;
 
             foreach (int nodeIdx in bucket)
             {
-                float dLat = _graph.NodeLat[nodeIdx] - lat;
-                float dLon = _graph.NodeLon[nodeIdx] - lon;
-                //  Approximate squared distance — good enough for nearest-node
-                //  No need for Haversine since we're comparing relative distances
+                float dLat = _allLat[nodeIdx] - lat;
+                float dLon = _allLon[nodeIdx] - lon;
                 float dist = dLat * dLat + dLon * dLon;
 
                 if (dist < bestDist)
@@ -163,16 +188,11 @@ namespace adaptive_offline_gps.RoutingEngine
             }
         }
 
-        //  A ring is definitely farther when its closest possible edge
-        //  is farther than the best distance found so far
         private bool RingIsDefinitelyFarther(int ring, int centerRow, int centerCol, float bestDist)
         {
-            //  Minimum angular distance from center to ring edge in lat/lon degrees
             float minLatDelta = (ring - 1) * (_latRange / _gridSize);
             float minLonDelta = (ring - 1) * (_lonRange / _gridSize);
-
             float minDist = minLatDelta * minLatDelta + minLonDelta * minLonDelta;
-
             return minDist > bestDist;
         }
 
@@ -180,17 +200,9 @@ namespace adaptive_offline_gps.RoutingEngine
             => LatToRow(lat) * _gridSize + LonToCol(lon);
 
         private int LatToRow(float lat)
-        {
-            int row = (int)(((lat - _minLat) / _latRange) * _gridSize);
-
-            return Math.Clamp(row, 0, _gridSize - 1);
-        }
+            => Math.Clamp((int)(((lat - _minLat) / _latRange) * _gridSize), 0, _gridSize - 1);
 
         private int LonToCol(float lon)
-        {
-            int col = (int)(((lon - _minLon) / _lonRange) * _gridSize);
-
-            return Math.Clamp(col, 0, _gridSize - 1);
-        }
+            => Math.Clamp((int)(((lon - _minLon) / _lonRange) * _gridSize), 0, _gridSize - 1);
     }
 }

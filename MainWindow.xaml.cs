@@ -157,7 +157,7 @@ namespace adaptive_offline_gps
                 "A*"                        => new AStarAlgorithm(),
                 //"Bidirectional A*"        => new BidirectionalAStarAlgorithm(),
                 //"Genetic"                 => new GeneticAlgorithm(),
-                "Contraction Hierarchies"   => new CHAlgorithmWrapper(_mapEngine.ChGraph),
+                "CH"   => new CHAlgorithmWrapper(_mapEngine.ChGraph),
                 _                           => new DijkstraAlgorithm(),
             };
 

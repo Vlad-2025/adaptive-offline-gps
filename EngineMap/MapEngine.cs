@@ -136,13 +136,22 @@ namespace adaptive_offline_gps.EngineMap
                 fromCache = true;
             }
             else
-            { 
+            {
                 var graphBuilder = new RoadGraphBuilder();
 
                 graph = graphBuilder.Build(osmFilePath);
 
                 RoadGraphSerializer.Save(graph, Path.ChangeExtension(osmFilePath, ".rgph"));
             }
+
+            NodeGridIndex nodeIndex;
+
+            if(graph is RoadGraph && false)
+            {
+                nodeIndex = null!;
+            }
+
+            nodeIndex = new NodeGridIndex(graph);
 
             CHGraph chGraph;
             bool chFromChace = false;
@@ -170,8 +179,6 @@ namespace adaptive_offline_gps.EngineMap
             }
 
             onGraphReady?.Invoke(graph.NodeCount, graph.EdgeCount, fromCache);
-
-            var nodeIndex = new NodeGridIndex(graph);
 
             return new MapEngine(mapControl, lodSelector, onViewportChanged, nodeIndex, graph, chGraph);
         }
