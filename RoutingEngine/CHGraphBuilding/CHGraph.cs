@@ -23,8 +23,7 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
         public List<CHEdge>[] UpAdj;
 
         /// <summary>
-        /// Downward adjacency (reversed upward edges): for each node v,
-        /// contains edges pointing to nodes u where Level[u] &lt; Level[v].
+        /// Downward adjacency (reversed upward edges): 
         /// Used by the backward search.
         /// </summary>
         public List<CHEdge>[] DownAdj;

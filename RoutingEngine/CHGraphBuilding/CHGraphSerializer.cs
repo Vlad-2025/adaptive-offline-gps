@@ -42,15 +42,15 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
             bw.Write(Version);
             bw.Write(n);
 
-            // Level array
+            //  Level array
             var levelBytes = new byte[n * 4];
             Buffer.BlockCopy(ch.Level, 0, levelBytes, 0, levelBytes.Length);
             bw.Write(levelBytes);
 
-            // UpAdj
+            //  UpAdj
             WriteAdjacency(bw, ch.UpAdj, n);
 
-            // DownAdj
+            //  DownAdj
             WriteAdjacency(bw, ch.DownAdj, n);
         }
 
@@ -78,15 +78,15 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
                     $"Node count mismatch: CH has {n}, RoadGraph has {baseGraph.NodeCount}. " +
                     "Rebuild the CH cache.");
 
-            // Level array
+            //  Level array
             var levelBytes = br.ReadBytes(n * 4);
             var level = new int[n];
             Buffer.BlockCopy(levelBytes, 0, level, 0, levelBytes.Length);
 
-            // UpAdj
+            //  UpAdj
             var upAdj = ReadAdjacency(br, n);
 
-            // DownAdj
+            //  DownAdj
             var downAdj = ReadAdjacency(br, n);
 
             return new CHGraph
@@ -118,7 +118,7 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
                 }
                 catch
                 {
-                    // Corrupted or version mismatch — rebuild
+                    //  Corrupted or version mismatch — rebuild
                 }
             }
 
@@ -126,7 +126,7 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
             return false;
         }
 
-        // ── Helpers ──
+        //  Helpers
 
         private static void WriteAdjacency(BinaryWriter bw, List<CHEdge>[] adj, int nodeCount)
         {

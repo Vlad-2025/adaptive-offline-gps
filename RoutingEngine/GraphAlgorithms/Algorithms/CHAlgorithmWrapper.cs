@@ -6,7 +6,7 @@ namespace adaptive_offline_gps.RoutingEngine.GraphAlgorithms.Algorithms
 {
     public class CHAlgorithmWrapper : IRoutingAlgorithm
     {
-        public string Name => "Contraction Hierarchies";
+        public string Name => "CH";
 
         private readonly CHGraph _ch;
 

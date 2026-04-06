@@ -115,8 +115,8 @@ namespace adaptive_offline_gps.EngineMap
             {
                 if (i > 0)
                 {
-                    // Try to find the edge from pathNodes[i-1] to pathNodes[i]
-                    // and insert its pillar geometry
+                    //  Try to find the edge from pathNodes[i-1] to pathNodes[i]
+                    //  and insert its pillar geometry
                     int from = pathNodes[i - 1];
                     int to = pathNodes[i];
 
@@ -145,7 +145,7 @@ namespace adaptive_offline_gps.EngineMap
                     }
                 }
 
-                // Add the junction node itself
+                //  Add the junction node itself
                 var (mx, my) = NodeToMercator(pathNodes[i]);
                 coordList.Add(new Coordinate(mx, my));
             }

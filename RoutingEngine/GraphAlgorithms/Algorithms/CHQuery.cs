@@ -10,8 +10,8 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
     {
         private readonly CHGraph _ch;
 
-        // Lookup: (from, to) → CHEdge for ALL edges in the CH (up + down directions)
-        // Built once, used for every query's unpacking step.
+        //  Lookup: (from, to) -> CHEdge for ALL edges in the CH (up and down directions)
+        //  Built once, used for every query's unpacking step.
         private readonly Dictionary<(int, int), CHEdge> _edgeLookup;
 
         public CHQuery(CHGraph ch)
@@ -22,7 +22,7 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
 
         /// <summary>
         /// Builds a lookup of all directed edges in the CH.
-        /// For every upward edge u → v, we also store the reverse v → u
+        /// For every upward edge u -> v, we also store the reverse v -> u
         /// with the same shortcutMid, so unpacking works in both directions.
         /// </summary>
         private static Dictionary<(int, int), CHEdge> BuildEdgeLookup(CHGraph ch)
@@ -34,11 +34,11 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
                 foreach (var e in ch.UpAdj[u])
                 {
                     var key = (u, e.Target);
-                    // Keep the shortest if duplicates exist
+                    //  Keep the shortest if duplicates exist
                     if (!lookup.TryGetValue(key, out var existing) || e.Weight < existing.Weight)
                         lookup[key] = e;
 
-                    // Also store the reverse direction for backward-path unpacking
+                    //  Also store the reverse direction for backward-path unpacking
                     var revKey = (e.Target, u);
                     if (!lookup.TryGetValue(revKey, out var revExisting) || e.Weight < revExisting.Weight)
                         lookup[revKey] = new CHEdge(u, e.Weight, e.ShortcutMid);
@@ -81,7 +81,7 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
             {
                 options.CancellationToken.ThrowIfCancellationRequested();
 
-                // ── Forward step: UpAdj (edges to higher-level nodes) ──
+                //  Forward step: UpAdj (edges to higher-level nodes)
                 if (pqF.Count > 0)
                 {
                     int u = pqF.Dequeue();
@@ -116,8 +116,6 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
                         }
                     }
                 }
-
-                // ── Backward step: DownAdj (reversed upward edges) ──
                 if (pqB.Count > 0)
                 {
                     int u = pqB.Dequeue();
@@ -142,6 +140,10 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
 
                         foreach (var e in _ch.DownAdj[u])
                         {
+                            //  Only follow edges going upward (to higher-level nodes)
+                            if (_ch.Level[e.Target] <= _ch.Level[u])
+                                continue;
+
                             float nd = distB[u] + e.Weight;
                             if (nd < distB[e.Target])
                             {
@@ -153,7 +155,7 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
                     }
                 }
 
-                // ── Termination ──
+                //  Termination
                 float minF = pqF.Count > 0 ? PeekPriority(pqF) : float.MaxValue;
                 float minB = pqB.Count > 0 ? PeekPriority(pqB) : float.MaxValue;
 
@@ -169,23 +171,23 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
                 return RoutingResult.NoPath;
             }
 
-            // ── Build packed path ──
-            // Forward: start → meetNode
+            //  Build packed path
+            //  Forward: start -> meetNode
             var forwardPacked = new List<int>();
             int c = meetNode;
             while (c != -1) { forwardPacked.Add(c); c = prevF[c]; }
             forwardPacked.Reverse();
 
-            // Backward: meetNode → end
+            //  Backward: meetNode -> end
             var backwardPacked = new List<int>();
             c = prevB[meetNode];
             while (c != -1) { backwardPacked.Add(c); c = prevB[c]; }
 
-            // Full packed path
+            //  Full packed path
             var packedPath = new List<int>(forwardPacked);
             packedPath.AddRange(backwardPacked);
 
-            // ── Unpack ──
+            //  Unpack
             var unpacked = UnpackPath(packedPath.ToArray());
 
             double distanceMeters = ComputePathDistance(unpacked);
@@ -228,22 +230,21 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
         {
             if (!_edgeLookup.TryGetValue((u, v), out var edge))
             {
-                // No CH edge found — this is a direct original edge
                 result.Add(v);
                 return;
             }
 
             if (edge.ShortcutMid == -1)
             {
-                // Original edge
+                //  Original edge
                 result.Add(v);
                 return;
             }
 
             int mid = edge.ShortcutMid;
 
-            // Shortcut u → v goes through mid.
-            // Recursively unpack u → mid, then mid → v.
+            //  Shortcut u -> v goes through mid.
+            //  Recursively unpack u -> mid, then mid -> v.
             UnpackEdge(u, mid, result);
             UnpackEdge(mid, v, result);
         }
