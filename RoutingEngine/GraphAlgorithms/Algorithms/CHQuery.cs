@@ -29,16 +29,31 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
         {
             var lookup = new Dictionary<(int, int), CHEdge>();
 
+            //  Index all UpAdj edges + reverses
             for (int u = 0; u < ch.UpAdj.Length; u++)
             {
                 foreach (var e in ch.UpAdj[u])
                 {
                     var key = (u, e.Target);
-                    //  Keep the shortest if duplicates exist
                     if (!lookup.TryGetValue(key, out var existing) || e.Weight < existing.Weight)
                         lookup[key] = e;
 
-                    //  Also store the reverse direction for backward-path unpacking
+                    var revKey = (e.Target, u);
+                    if (!lookup.TryGetValue(revKey, out var revExisting) || e.Weight < revExisting.Weight)
+                        lookup[revKey] = new CHEdge(u, e.Weight, e.ShortcutMid);
+                }
+            }
+
+            //  Index all DownAdj edges + reverses
+            //  These include edges from the else-if branch not present in UpAdj
+            for (int u = 0; u < ch.DownAdj.Length; u++)
+            {
+                foreach (var e in ch.DownAdj[u])
+                {
+                    var key = (u, e.Target);
+                    if (!lookup.TryGetValue(key, out var existing) || e.Weight < existing.Weight)
+                        lookup[key] = e;
+
                     var revKey = (e.Target, u);
                     if (!lookup.TryGetValue(revKey, out var revExisting) || e.Weight < revExisting.Weight)
                         lookup[revKey] = new CHEdge(u, e.Weight, e.ShortcutMid);

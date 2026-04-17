@@ -13,9 +13,18 @@ namespace adaptive_offline_gps.WebDownloader
     {
         private static readonly HashSet<string> RoadTypes = new()
         {
-            "motorway", "trunk", "primary", "secondary", "tertiary",
-            "residential", "living_street", "service", "unclassified",
-            "motorway_link", "trunk_link", "primary_link"
+            "motorway", 
+            "trunk", 
+            "primary", 
+            "secondary", 
+            "tertiary",
+            "residential", 
+            "living_street", 
+            "service", 
+            "unclassified",
+            "motorway_link", 
+            "trunk_link", 
+            "primary_link"
         };
         
         public async Task ExtractRoadsAsync(

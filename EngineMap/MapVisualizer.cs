@@ -9,6 +9,7 @@ using Mapsui.UI.Wpf;
 using NetTopologySuite.Geometries;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using System.Windows;
 using Point = NetTopologySuite.Geometries.Point;
@@ -115,18 +116,15 @@ namespace adaptive_offline_gps.EngineMap
             {
                 if (i > 0)
                 {
-                    //  Try to find the edge from pathNodes[i-1] to pathNodes[i]
-                    //  and insert its pillar geometry
                     int from = pathNodes[i - 1];
                     int to = pathNodes[i];
 
-                    bool foundEdge = false;
-
+                    // Try forward direction: from → to
+                    bool found = false;
                     for (int e = _graph.EdgeHead[from]; e < _graph.EdgeHead[from + 1]; e++)
                     {
                         if (_graph.EdgeTarget[e] == to)
                         {
-                            // Insert pillar nodes for this edge
                             var pillarLat = _graph.EdgeGeomLat[e];
                             var pillarLon = _graph.EdgeGeomLon[e];
 
@@ -138,9 +136,33 @@ namespace adaptive_offline_gps.EngineMap
                                     coordList.Add(new Coordinate(pmx, pmy));
                                 }
                             }
-
-                            foundEdge = true;
+                            found = true;
                             break;
+                        }
+                    }
+
+                    // Try reverse direction: to → from (for undirected roads,
+                    // the edge might only be stored in one direction)
+                    if (!found)
+                    {
+                        for (int e = _graph.EdgeHead[to]; e < _graph.EdgeHead[to + 1]; e++)
+                        {
+                            if (_graph.EdgeTarget[e] == from)
+                            {
+                                var pillarLat = _graph.EdgeGeomLat[e];
+                                var pillarLon = _graph.EdgeGeomLon[e];
+
+                                if (pillarLat != null && pillarLat.Length > 0)
+                                {
+                                    // Insert in reverse order since we're traversing the edge backwards
+                                    for (int p = pillarLat.Length - 1; p >= 0; p--)
+                                    {
+                                        var (pmx, pmy) = SphericalMercator.FromLonLat(pillarLon[p], pillarLat[p]);
+                                        coordList.Add(new Coordinate(pmx, pmy));
+                                    }
+                                }
+                                break;
+                            }
                         }
                     }
                 }
@@ -149,6 +171,31 @@ namespace adaptive_offline_gps.EngineMap
                 var (mx, my) = NodeToMercator(pathNodes[i]);
                 coordList.Add(new Coordinate(mx, my));
             }
+
+            // Debug: count how many edges found vs missing
+            int foundCount = 0, missingCount = 0;
+
+            for (int i = 0; i < pathNodes.Length - 1; i++)
+            {
+                int from = pathNodes[i];
+                int to = pathNodes[i + 1];
+
+                bool found = false;
+                for (int e = _graph.EdgeHead[from]; e < _graph.EdgeHead[from + 1]; e++)
+                    if (_graph.EdgeTarget[e] == to) { found = true; break; }
+
+                if (!found)
+                {
+                    for (int e = _graph.EdgeHead[to]; e < _graph.EdgeHead[to + 1]; e++)
+                        if (_graph.EdgeTarget[e] == from) { found = true; break; }
+                }
+
+                if (found) foundCount++;
+                else missingCount++;
+            }
+
+            Debug.WriteLine($"Path geometry: {foundCount} edges found, {missingCount} missing " +
+                            $"({pathNodes.Length} nodes, {pathNodes.Length - 1} edges)");
 
             var line = new LineString(coordList.ToArray());
 
@@ -219,13 +266,13 @@ namespace adaptive_offline_gps.EngineMap
 
             //  Nodes older than the last 200 get progressively dimmer
             const int fadeWindow = 200;
-            int fadeStart   = Math.Max(0, count - fadeWindow - RedrawEvery);
-            int fadeEnd     = Math.Max(0, count - RedrawEvery);
+            int fadeStart = Math.Max(0, count - fadeWindow - RedrawEvery);
+            int fadeEnd = Math.Max(0, count - RedrawEvery);
 
             for (int i = fadeStart; i < fadeEnd; i++)
             {
                 //  0 = bright, 1 = dim
-                float t = 1f - ((float)(fadeEnd - i) /  fadeWindow);
+                float t = 1f - ((float)(fadeEnd - i) / fadeWindow);
                 t = Math.Clamp(t, 0f, 1f);
 
                 var color = LerpColor(ColVisitedBright, ColVisitedDim, t);

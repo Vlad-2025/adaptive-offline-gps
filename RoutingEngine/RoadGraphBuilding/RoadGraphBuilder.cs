@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.IO.MemoryMappedFiles;
 using System.Linq;
 using OsmSharp;
 
@@ -13,31 +14,26 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
         private static readonly Dictionary<string, float> SpeedMap = new()
         {
             ["motorway"] = 130,
+            ["motorway_link"] = 80,
             ["trunk"] = 110,
+            ["trunk_link"] = 70,
             ["primary"] = 90,
+            ["primary_link"] = 60,
             ["secondary"] = 70,
+            ["secondary_link"] = 50,
             ["tertiary"] = 50,
             ["residential"] = 30,
             ["living_street"] = 10,
-            ["service"] = 20
+            ["service"] = 20,
         };
 
-        /// <summary>
-        /// All road node coordinates, indexed by their compact "all-node" index.
-        /// Stored separately so NodeGridIndex can index every road node for click snapping.
-        /// </summary>
         public float[] AllNodeLat { get; private set; }
         public float[] AllNodeLon { get; private set; }
-
-        /// <summary>
-        /// Maps each all-node index to the edge it sits on: (junctionA, junctionB, fractionAlongEdge).
-        /// For junction nodes, maps to themselves. Used by NodeGridIndex to snap clicks to edges.
-        /// </summary>
         public int[] AllNodeNearestJunction { get; private set; }
 
         public RoadGraph Build(string filePath)
         {
-            // ── Pass 1: scan ways, count node references to find junctions ──
+            //  Pass 1: scan ways, count node references to find junctions
             var nodeRefCount = new Dictionary<long, int>();
             var wayEndpoints = new HashSet<long>();
 
@@ -67,15 +63,15 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
                 }
             }
 
-            // A node is a junction (tower node) if:
-            //   - referenced by 2+ ways (intersection), OR
-            //   - start/end of any way (dead end, way boundary)
             var junctionOsmIds = new HashSet<long>();
             foreach (var (nid, count) in nodeRefCount)
             {
                 if (count > 1 || wayEndpoints.Contains(nid))
                     junctionOsmIds.Add(nid);
             }
+
+            //  Keep all road node IDs before freeing nodeRefCount
+            var allRoadNodeIds = new HashSet<long>(nodeRefCount.Keys);
 
             int totalRoadNodes = nodeRefCount.Count;
             Debug.WriteLine($"RoadGraph: {totalRoadNodes} road nodes, {junctionOsmIds.Count} junctions " +
@@ -84,101 +80,17 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
             nodeRefCount = null;
             wayEndpoints = null;
 
-            // ── Pass 2: read coordinates for ALL road nodes ──
-            // Junction nodes get compact junction IDs.
-            // All nodes get compact all-node IDs (for NodeGridIndex).
-            var junctionIndex = new Dictionary<long, int>();    // osmId → junction compact ID
-            var junctionCoords = new List<(float lat, float lon)>();
-
-            var allNodeIndex = new Dictionary<long, int>();     // osmId → all-node compact ID  
-            var allLat = new List<float>();
-            var allLon = new List<float>();
-
-            // We also need osmId → (lat, lon) for pillar nodes during pass 3
-            var allNodeCoords = new Dictionary<long, (float lat, float lon)>();
-
-            stream.Position = 0;
-            source = new PBFOsmStreamSource(stream);
-
-            foreach (var elem in source)
-            {
-                if (elem.Type != OsmGeoType.Node) continue;
-                var node = (Node)elem;
-                if (!node.Id.HasValue || !node.Latitude.HasValue || !node.Longitude.HasValue)
-                    continue;
-
-                long id = node.Id.Value;
-
-                // Skip nodes not on any road
-                if (!junctionOsmIds.Contains(id))
-                {
-                    // Check if it's a road node at all (was in nodeRefCount)
-                    // We can't check nodeRefCount anymore, so use allNodeCoords as gate:
-                    // Actually we need a set of all road node IDs. Let's use a different approach.
-                    // We'll just store all nodes we encounter and filter later.
-                    // For now, store in allNodeCoords unconditionally — pass 1 already told us
-                    // which nodes are on roads. But we cleared nodeRefCount...
-                    // 
-                    // Fix: we need the set of all road node IDs. Let's keep it.
-                    continue;
-                }
-
-                float lat = (float)node.Latitude.Value;
-                float lon = (float)node.Longitude.Value;
-
-                allNodeCoords[id] = (lat, lon);
-
-                // All-node index (for grid)
-                allNodeIndex[id] = allLat.Count;
-                allLat.Add(lat);
-                allLon.Add(lon);
-
-                // Junction index (for routing graph)
-                if (junctionOsmIds.Contains(id))
-                {
-                    junctionIndex[id] = junctionCoords.Count;
-                    junctionCoords.Add((lat, lon));
-                }
-            }
-
-            // Hmm, we skipped non-junction road nodes above. We need them for:
-            // 1. allNodeCoords (pillar geometry in pass 3)
-            // 2. AllNodeLat/Lon (NodeGridIndex for click snapping)
-            // Let's re-do pass 2 properly.
-
-            // Actually, let me restructure. We need ALL road node IDs from pass 1.
-            // Let me redo this cleanly.
-
-            return BuildInternal(filePath, junctionOsmIds);
-        }
-
-        private RoadGraph BuildInternal(string filePath, HashSet<long> junctionOsmIds)
-        {
-            // ── Pass 1 (repeat): collect all road node IDs ──
-            var allRoadNodeIds = new HashSet<long>();
-
-            using var stream = File.OpenRead(filePath);
-            var source = new PBFOsmStreamSource(stream);
-
-            foreach (var elem in source)
-            {
-                if (elem.Type != OsmGeoType.Way) continue;
-                var way = (Way)elem;
-                if (way.Tags == null || !way.Tags.ContainsKey("highway")) continue;
-                if (!SpeedMap.ContainsKey(way.Tags["highway"])) continue;
-
-                foreach (var nid in way.Nodes)
-                    allRoadNodeIds.Add(nid);
-            }
-
-            // ── Pass 2: read coordinates ──
+            //  Pass 2: read coordinates
+            //  Junction data stays in memory
+            //  ALL node coordinates go to DiskNodeStore (replaces allNodeCoords dictionary).
             var junctionIndex = new Dictionary<long, int>();
             var junctionCoords = new List<(float lat, float lon)>();
 
-            var allNodeCoords = new Dictionary<long, (float lat, float lon)>();
             var allNodeCompactIndex = new Dictionary<long, int>();
             var allLat = new List<float>();
             var allLon = new List<float>();
+
+            using var nodeStore = new DiskNodeStore();
 
             stream.Position = 0;
             source = new PBFOsmStreamSource(stream);
@@ -197,11 +109,15 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
                 float lat = (float)node.Latitude.Value;
                 float lon = (float)node.Longitude.Value;
 
-                allNodeCoords[id] = (lat, lon);
+                //  Coordinates to disk (replaces allNodeCoords dictionary)
+                nodeStore.Add(id, lat, lon);
+
+                //  Compact index for NodeGridIndex (just ints + floats in lists)
                 allNodeCompactIndex[id] = allLat.Count;
                 allLat.Add(lat);
                 allLon.Add(lon);
 
+                //  Junction index for routing graph
                 if (junctionOsmIds.Contains(id))
                 {
                     junctionIndex[id] = junctionCoords.Count;
@@ -209,21 +125,19 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
                 }
             }
 
-            allRoadNodeIds = null; // free
+            allRoadNodeIds = null;
+
+            //  Sort the disk store for binary search lookups
+            nodeStore.Build();
 
             Debug.WriteLine($"RoadGraph: {allLat.Count} total road nodes, {junctionCoords.Count} junction nodes");
 
-            // ── Pass 3: build edges between junctions with pillar geometry ──
-            // Each OSM way is split at junction nodes into segments.
-            // Each segment becomes one edge in the graph.
-
+            //  Pass 3: build edges between junctions with pillar geometry
             var adjList = new List<(int to, float weight, float[] geomLat, float[] geomLon)>[junctionCoords.Count];
             for (int i = 0; i < adjList.Length; i++)
                 adjList[i] = new List<(int, float, float[], float[])>();
 
-            // Also track which junction each all-node is nearest to
             var allNodeNearestJunc = new int[allLat.Count];
-            // Initialize: junction nodes map to themselves
             foreach (var (osmId, jIdx) in junctionIndex)
             {
                 if (allNodeCompactIndex.TryGetValue(osmId, out int allIdx))
@@ -242,38 +156,33 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
 
                 bool isOneWay = way.Tags.GetValue("oneway") == "yes";
 
-                // Walk the way's nodes, splitting at junctions
                 var segmentOsmIds = new List<long>();
 
                 foreach (long nid in way.Nodes)
                 {
                     segmentOsmIds.Add(nid);
 
-                    // When we hit a junction and have accumulated a segment, emit it
                     if (junctionOsmIds.Contains(nid) && segmentOsmIds.Count >= 2)
                     {
                         EmitSegment(segmentOsmIds, speed, isOneWay,
-                            allNodeCoords, junctionIndex, junctionCoords,
+                            nodeStore, junctionIndex, junctionCoords,
                             allNodeCompactIndex, allNodeNearestJunc,
                             adjList);
 
-                        // Start new segment from this junction
                         segmentOsmIds.Clear();
                         segmentOsmIds.Add(nid);
                     }
                 }
 
-                // Handle leftover (way ended without hitting a second junction)
                 if (segmentOsmIds.Count >= 2)
                 {
                     EmitSegment(segmentOsmIds, speed, isOneWay,
-                        allNodeCoords, junctionIndex, junctionCoords,
+                        nodeStore, junctionIndex, junctionCoords,
                         allNodeCompactIndex, allNodeNearestJunc,
                         adjList);
                 }
             }
 
-            // Store all-node arrays for NodeGridIndex
             AllNodeLat = allLat.ToArray();
             AllNodeLon = allLon.ToArray();
             AllNodeNearestJunction = allNodeNearestJunc;
@@ -285,7 +194,7 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
             List<long> segmentOsmIds,
             float speed,
             bool isOneWay,
-            Dictionary<long, (float lat, float lon)> allNodeCoords,
+            DiskNodeStore nodeStore,
             Dictionary<long, int> junctionIndex,
             List<(float lat, float lon)> junctionCoords,
             Dictionary<long, int> allNodeCompactIndex,
@@ -297,39 +206,36 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
 
             if (!junctionIndex.TryGetValue(firstOsm, out int juncA)) return;
             if (!junctionIndex.TryGetValue(lastOsm, out int juncB)) return;
-            if (juncA == juncB) return; // self-loop
+            if (juncA == juncB) return;
 
-            // Compute total distance and collect pillar geometry
             float totalDist = 0;
             var pillarLat = new List<float>();
             var pillarLon = new List<float>();
+
+            float prevLat = 0, prevLon = 0;
+            bool hasPrev = false;
 
             for (int i = 0; i < segmentOsmIds.Count; i++)
             {
                 long nid = segmentOsmIds[i];
 
-                if (!allNodeCoords.TryGetValue(nid, out var pos))
+                if (!nodeStore.TryGet(nid, out float lat, out float lon))
                     continue;
 
-                // Distance accumulation
-                if (i > 0)
-                {
-                    var prev = allNodeCoords[segmentOsmIds[i - 1]];
-                    totalDist += Haversine(prev, pos);
-                }
+                if (hasPrev)
+                    totalDist += Haversine((prevLat, prevLon), (lat, lon));
 
-                // Pillar nodes = everything except first and last (which are junctions)
+                prevLat = lat;
+                prevLon = lon;
+                hasPrev = true;
+
                 if (i > 0 && i < segmentOsmIds.Count - 1)
                 {
-                    pillarLat.Add(pos.lat);
-                    pillarLon.Add(pos.lon);
+                    pillarLat.Add(lat);
+                    pillarLon.Add(lon);
 
-                    // Map this all-node to the nearest junction (pick closer of A or B)
                     if (allNodeCompactIndex.TryGetValue(nid, out int allIdx))
-                    {
-                        // Simple heuristic: assign to juncA for first half, juncB for second
                         allNodeNearestJunc[allIdx] = (i < segmentOsmIds.Count / 2) ? juncA : juncB;
-                    }
                 }
             }
 
@@ -342,7 +248,6 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
 
             if (!isOneWay)
             {
-                // Reverse geometry for the reverse edge
                 var revLat = gLat.Reverse().ToArray();
                 var revLon = gLon.Reverse().ToArray();
                 adjList[juncB].Add((juncA, cost, revLat, revLon));
@@ -411,6 +316,129 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
                 * so * so;
 
             return R * 2f * MathF.Atan2(MathF.Sqrt(x), MathF.Sqrt(1 - x));
+        }
+    }
+
+    /// <summary>
+    /// Disk-backed node coordinate store. Writes to a temp file during the node pass,
+    /// then sorts and memory-maps for binary search lookups during the way pass.
+    /// 
+    /// Memory usage: ~8 bytes per node (just the sorted ID index).
+    /// Coordinates stay on disk, paged in by the OS as needed.
+    /// 
+    /// For 50M nodes: ~400MB RAM (ID index) + ~800MB disk file.
+    /// Compare to Dictionary: ~2-4GB RAM.
+    /// </summary>
+    public class DiskNodeStore : IDisposable
+    {
+        private const int RecordSize = 16; // 8 (long id) + 4 (float lat) + 4 (float lon)
+
+        private readonly string _filePath;
+        private BinaryWriter _writer;
+        private long _count;
+
+        private MemoryMappedFile _mmf;
+        private MemoryMappedViewAccessor _accessor;
+        private long[] _sortedIds;
+
+        public DiskNodeStore(string tempDir = null)
+        {
+            _filePath = Path.Combine(
+                tempDir ?? Path.GetTempPath(),
+                $"nodes_{Guid.NewGuid():N}.bin");
+            _writer = new BinaryWriter(File.Create(_filePath));
+            _count = 0;
+        }
+
+        public void Add(long osmId, float lat, float lon)
+        {
+            _writer.Write(osmId);
+            _writer.Write(lat);
+            _writer.Write(lon);
+            _count++;
+        }
+
+        public void Build()
+        {
+            _writer.Flush();
+            _writer.Dispose();
+            _writer = null;
+
+            Debug.WriteLine($"DiskNodeStore: sorting {_count} nodes " +
+                            $"({_count * RecordSize / 1024 / 1024}MB on disk)");
+
+            _mmf = MemoryMappedFile.CreateFromFile(
+                _filePath, FileMode.Open, null, 0, MemoryMappedFileAccess.Read);
+            _accessor = _mmf.CreateViewAccessor(
+                0, _count * RecordSize, MemoryMappedFileAccess.Read);
+
+            _sortedIds = new long[_count];
+            var positions = new int[_count];
+
+            for (int i = 0; i < _count; i++)
+            {
+                _sortedIds[i] = _accessor.ReadInt64((long)i * RecordSize);
+                positions[i] = i;
+            }
+
+            Array.Sort(_sortedIds, positions);
+
+            //  Rewrite file in sorted order
+            var sortedPath = _filePath + ".sorted";
+            using (var bw = new BinaryWriter(File.Create(sortedPath)))
+            {
+                for (int i = 0; i < _count; i++)
+                {
+                    long offset = (long)positions[i] * RecordSize;
+                    long id = _accessor.ReadInt64(offset);
+                    float lat = _accessor.ReadSingle(offset + 8);
+                    float lon = _accessor.ReadSingle(offset + 12);
+                    bw.Write(id);
+                    bw.Write(lat);
+                    bw.Write(lon);
+                }
+            }
+
+            _accessor.Dispose();
+            _mmf.Dispose();
+            File.Delete(_filePath);
+            File.Move(sortedPath, _filePath);
+
+            _mmf = MemoryMappedFile.CreateFromFile(
+                _filePath, FileMode.Open, null, 0, MemoryMappedFileAccess.Read);
+            
+            _accessor = _mmf.CreateViewAccessor(
+                0, _count * RecordSize, MemoryMappedFileAccess.Read);
+
+            //  Re-read sorted IDs for binary search
+            for (int i = 0; i < _count; i++)
+                _sortedIds[i] = _accessor.ReadInt64((long)i * RecordSize);
+
+            Debug.WriteLine("DiskNodeStore: ready");
+        }
+
+        public bool TryGet(long osmId, out float lat, out float lon)
+        {
+            int idx = Array.BinarySearch(_sortedIds, osmId);
+            if (idx < 0)
+            {
+                lat = lon = 0;
+                return false;
+            }
+
+            long offset = (long)idx * RecordSize;
+            lat = _accessor.ReadSingle(offset + 8);
+            lon = _accessor.ReadSingle(offset + 12);
+            return true;
+        }
+
+        public void Dispose()
+        {
+            _accessor?.Dispose();
+            _mmf?.Dispose();
+            _writer?.Dispose();
+            try { File.Delete(_filePath); } catch { }
+            try { File.Delete(_filePath + ".sorted"); } catch { }
         }
     }
 }

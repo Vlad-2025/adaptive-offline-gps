@@ -17,16 +17,16 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
             bw.Write(g.NodeCount);
             bw.Write(g.EdgeCount);
 
-            // Node coordinates
+            //  Node coordinates
             WriteFloatArray(bw, g.NodeLat);
             WriteFloatArray(bw, g.NodeLon);
 
-            // CSR structure
+            //  CSR structure
             WriteIntArray(bw, g.EdgeHead);
             WriteIntArray(bw, g.EdgeTarget);
             WriteFloatArray(bw, g.EdgeWeight);
 
-            // Edge geometry (pillar nodes)
+            //  Edge geometry (pillar nodes)
             for (int e = 0; e < g.EdgeCount; e++)
             {
                 var lat = g.EdgeGeomLat[e];
@@ -69,7 +69,7 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
                 EdgeGeomLon = new float[edgeCount][]
             };
 
-            // Edge geometry
+            //  Edge geometry
             for (int e = 0; e < edgeCount; e++)
             {
                 int count = br.ReadInt32();
