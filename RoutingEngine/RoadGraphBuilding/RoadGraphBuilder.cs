@@ -154,7 +154,19 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
                 if (way.Tags == null || !SpeedMap.TryGetValue(way.Tags.GetValue("highway") ?? "", out float speed))
                     continue;
 
-                bool isOneWay = way.Tags.GetValue("oneway") == "yes";
+                string highwayType  = way.Tags["highway"];
+                string onewayTag    = way.Tags.GetValue("oneway") ?? "";
+                string junctionTag  = way.Tags.GetValue("junction") ?? "";
+
+                bool isOneWay = onewayTag == "yes"
+                             || onewayTag == "1"
+                             || onewayTag == "true"
+                             || junctionTag == "roundabout"     // roundabout = implicitly one-way
+                             || highwayType == "motorway"       // motorways always one-way
+                             || highwayType == "motorway_link"; // on/off ramps too
+
+                bool isReversed = onewayTag == "-1"
+                               || onewayTag == "reverse";       // digitized backwards
 
                 var segmentOsmIds = new List<long>();
 
@@ -164,7 +176,7 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
 
                     if (junctionOsmIds.Contains(nid) && segmentOsmIds.Count >= 2)
                     {
-                        EmitSegment(segmentOsmIds, speed, isOneWay,
+                        EmitSegment(segmentOsmIds, speed, isOneWay, isReversed,
                             nodeStore, junctionIndex, junctionCoords,
                             allNodeCompactIndex, allNodeNearestJunc,
                             adjList);
@@ -176,7 +188,7 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
 
                 if (segmentOsmIds.Count >= 2)
                 {
-                    EmitSegment(segmentOsmIds, speed, isOneWay,
+                    EmitSegment(segmentOsmIds, speed, isOneWay, isReversed,
                         nodeStore, junctionIndex, junctionCoords,
                         allNodeCompactIndex, allNodeNearestJunc,
                         adjList);
@@ -194,6 +206,7 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
             List<long> segmentOsmIds,
             float speed,
             bool isOneWay,
+            bool isReversed,
             DiskNodeStore nodeStore,
             Dictionary<long, int> junctionIndex,
             List<(float lat, float lon)> junctionCoords,
@@ -243,14 +256,24 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
 
             var gLat = pillarLat.ToArray();
             var gLon = pillarLon.ToArray();
+            var revLat = gLat.Reverse().ToArray();
+            var revLon = gLon.Reverse().ToArray();
 
-            adjList[juncA].Add((juncB, cost, gLat, gLon));
-
-            if (!isOneWay)
+            if (isReversed)
             {
-                var revLat = gLat.Reverse().ToArray();
-                var revLon = gLon.Reverse().ToArray();
+                //  Way is digitized backwards, only add B->A
                 adjList[juncB].Add((juncA, cost, revLat, revLon));
+            }
+            else
+            {
+                //  Normal direction A->B
+                adjList[juncA].Add((juncB, cost, gLat, gLon));
+
+                if (!isOneWay)
+                {
+                    //  Two-way road, also add B->A
+                    adjList[juncB].Add((juncA, cost, revLat, revLon));
+                }
             }
         }
 
