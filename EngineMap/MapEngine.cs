@@ -116,12 +116,16 @@ namespace adaptive_offline_gps.EngineMap
         }
 
         public static async Task<MapEngine> CreateAsync(
-                MapControl mapControl, string osmFilePath, bool forceRebuild = false, 
+                MapControl mapControl, 
+                string osmFilePath, 
+                bool forceRebuild = false, 
                 GraphReadyCallback? onGraphReady = null, 
                 ViewportChangedCallback? onViewportChanged = null,
                 Action<string>? onStatusUpdate = null
             )
         {
+            var indexProgress = new Progress<string>(msg => onStatusUpdate?.Invoke(msg));
+
             var indexBuilder = new RoadIndexBuilder();
 
             var index = await indexBuilder.BuildAsync(osmFilePath);
@@ -134,14 +138,24 @@ namespace adaptive_offline_gps.EngineMap
             if (!forceRebuild && RoadGraphSerializer.TryLoadCached(osmFilePath, out graph))
             {
                 fromCache = true;
+                onStatusUpdate?.Invoke("road graph loaded from cache");
             }
             else
             {
-                var graphBuilder = new RoadGraphBuilder();
+                onStatusUpdate?.Invoke("parsing road graph...");
 
-                graph = graphBuilder.Build(osmFilePath);
+                graph = await Task.Run(() =>
+                {
+                    var g = new RoadGraphBuilder().Build(osmFilePath);
+                    return g;
+                });
 
-                RoadGraphSerializer.Save(graph, Path.ChangeExtension(osmFilePath, ".rgph"));
+                onStatusUpdate?.Invoke("saving road graph...");
+
+                await Task.Run(() =>
+                {
+                    RoadGraphSerializer.Save(graph, Path.ChangeExtension(osmFilePath, ".rgph"));
+                });
             }
 
             NodeGridIndex nodeIndex;
@@ -151,14 +165,15 @@ namespace adaptive_offline_gps.EngineMap
                 nodeIndex = null!;
             }
 
-            nodeIndex = new NodeGridIndex(graph);
+            onStatusUpdate?.Invoke("building spacial index...");
+
+            nodeIndex = await Task.Run(() => new NodeGridIndex(graph));
 
             CHGraph chGraph;
-            bool chFromChace = false;
 
             if (!forceRebuild && CHGraphSerializer.TryLoadCached(osmFilePath, graph, out chGraph))
             {
-                chFromChace = true;
+                onStatusUpdate?.Invoke("CH loaded from cache");
             }
             else
             {
@@ -166,14 +181,12 @@ namespace adaptive_offline_gps.EngineMap
 
                 onStatusUpdate?.Invoke("building contraction hierarchy...");
 
-                var preprocessor = new CHPreprocessor();
-
-                chGraph = preprocessor.Preprocess(graph);
+                chGraph = await Task.Run(() => new CHPreprocessor().Preprocess(graph));
 
                 onStatusUpdate?.Invoke("saving CH cache");
 
-                CHGraphSerializer.Save(chGraph, Path.ChangeExtension(osmFilePath, ".chgr"));
-
+                await Task.Run(()=> CHGraphSerializer.Save(chGraph, Path.ChangeExtension(osmFilePath, ".chgr")));
+                
                 int shortcuts = chGraph.UpAdj.Sum(a => a.Count(e => e.ShortcutMid != -1));
                 Debug.WriteLine($"CH has {shortcuts} shortcuts");
             }

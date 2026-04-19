@@ -49,6 +49,7 @@ namespace adaptive_offline_gps
             TopBar.LoadFileRequested    += OnLoadFileRequested;
             TopBar.BuildGraphRequested  += OnBuildGraphRequested;
             TopBar.ClearRouteRequested  += OnClearRouteRequested;
+
             DownloadPanel.FileReady     += DownloadPanel_FileReady;
 
             LeftPanel.Log("system ready");
@@ -248,6 +249,7 @@ namespace adaptive_offline_gps
         {
             TopBar.SetStatus("LOADING...", "#FFB830");
             TopBar.SetButtonsEnabled(false);
+            LoadingOverlay.Visibility = Visibility.Visible;
 
             //  measure time needed to load map
             var sw = Stopwatch.StartNew();
@@ -279,9 +281,10 @@ namespace adaptive_offline_gps
                         });
                     },
                     onStatusUpdate: msg => Dispatcher.Invoke(() => 
-                        LeftPanel.Log(msg, DebugConsole.LogLevel.Info)
-                        )
-                    );
+                    {
+                        TxtLoadingStatus.Text = msg;
+                        LeftPanel.Log(msg, DebugConsole.LogLevel.Info);
+                    }));
 
                 sw.Stop();
 
@@ -321,6 +324,7 @@ namespace adaptive_offline_gps
             }
             finally
             {
+                LoadingOverlay.Visibility = Visibility.Collapsed;
                 TopBar.SetButtonsEnabled(true);
             }
         }

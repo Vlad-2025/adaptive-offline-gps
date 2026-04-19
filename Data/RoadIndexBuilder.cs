@@ -19,7 +19,11 @@ namespace adaptive_offline_gps.Data
 {
     public class RoadIndexBuilder
     {
-        public async Task<RoadSpatialIndex> BuildAsync(string filePath)
+        public async Task<RoadSpatialIndex> BuildAsync
+        (
+            string filePath,
+            IProgress<string>? progress = null
+        )
         {
             return await Task.Run(() =>
             {
@@ -30,6 +34,7 @@ namespace adaptive_offline_gps.Data
                 var source = new PBFOsmStreamSource(stream);
 
                 //  First pass: nodes
+                progress?.Report("reading nodes...");
                 foreach (var element in source)
                 {
                     if (element.Type == OsmGeoType.Node)
@@ -56,6 +61,7 @@ namespace adaptive_offline_gps.Data
                 var minorWays = new List<Geometry>();
 
                 //  Second pass: ways
+                progress?.Report("reading ways...");
                 foreach (var element in source)
                 {
                     if (element.Type != OsmGeoType.Way)
@@ -96,6 +102,8 @@ namespace adaptive_offline_gps.Data
                 }
 
                 //  I tried using parallel, not much changed
+
+                progress?.Report("merging geometries...");
 
                 InsertMerged(index.MajorFull,   index.MajorLow,     majorWays, 300);
                 InsertMerged(index.MediumFull,  index.MediumLow,    mediumWays, 80);
