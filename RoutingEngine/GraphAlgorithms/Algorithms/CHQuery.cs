@@ -10,57 +10,9 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
     {
         private readonly CHGraph _ch;
 
-        //  Lookup: (from, to) -> CHEdge for ALL edges in the CH (up and down directions)
-        //  Built once, used for every query's unpacking step.
-        private readonly Dictionary<(int, int), CHEdge> _edgeLookup;
-
         public CHQuery(CHGraph ch)
         {
             _ch = ch;
-            _edgeLookup = BuildEdgeLookup(ch);
-        }
-
-        /// <summary>
-        /// Builds a lookup of all directed edges in the CH.
-        /// For every upward edge u -> v, we also store the reverse v -> u
-        /// with the same shortcutMid, so unpacking works in both directions.
-        /// </summary>
-        private static Dictionary<(int, int), CHEdge> BuildEdgeLookup(CHGraph ch)
-        {
-            var lookup = new Dictionary<(int, int), CHEdge>();
-
-            //  Index all UpAdj edges + reverses
-            for (int u = 0; u < ch.UpAdj.Length; u++)
-            {
-                foreach (var e in ch.UpAdj[u])
-                {
-                    var key = (u, e.Target);
-                    if (!lookup.TryGetValue(key, out var existing) || e.Weight < existing.Weight)
-                        lookup[key] = e;
-
-                    var revKey = (e.Target, u);
-                    if (!lookup.TryGetValue(revKey, out var revExisting) || e.Weight < revExisting.Weight)
-                        lookup[revKey] = new CHEdge(u, e.Weight, e.ShortcutMid);
-                }
-            }
-
-            //  Index all DownAdj edges + reverses
-            //  These include edges from the else-if branch not present in UpAdj
-            for (int u = 0; u < ch.DownAdj.Length; u++)
-            {
-                foreach (var e in ch.DownAdj[u])
-                {
-                    var key = (u, e.Target);
-                    if (!lookup.TryGetValue(key, out var existing) || e.Weight < existing.Weight)
-                        lookup[key] = e;
-
-                    var revKey = (e.Target, u);
-                    if (!lookup.TryGetValue(revKey, out var revExisting) || e.Weight < revExisting.Weight)
-                        lookup[revKey] = new CHEdge(u, e.Weight, e.ShortcutMid);
-                }
-            }
-
-            return lookup;
         }
 
         public async Task<RoutingResult> FindPathAsync(
@@ -69,13 +21,20 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
             IRoutingVisualizer visualizer)
         {
             var sw = Stopwatch.StartNew();
-
             int n = _ch.BaseGraph.NodeCount;
 
             var distF = new float[n]; Array.Fill(distF, float.MaxValue);
             var distB = new float[n]; Array.Fill(distB, float.MaxValue);
-            var prevF = new int[n]; Array.Fill(prevF, -1);
-            var prevB = new int[n]; Array.Fill(prevB, -1);
+
+            //  For each settled node, remember the EDGE that reached it: predecessor node
+            //  and the shortcut-mid of that edge (or -1 for original edges)
+
+            //  This way, path reconstruction has zero ambiguity -> no separate lookup table needed
+
+            var prevNodeF = new int[n]; Array.Fill(prevNodeF, -1);
+            var prevMidF = new int[n]; Array.Fill(prevMidF, -1);
+            var prevNodeB = new int[n]; Array.Fill(prevNodeB, -1);
+            var prevMidB = new int[n]; Array.Fill(prevMidB, -1);
 
             var settledF = new bool[n];
             var settledB = new bool[n];
@@ -96,86 +55,100 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
             {
                 options.CancellationToken.ThrowIfCancellationRequested();
 
-                //  Forward step: UpAdj (edges to higher-level nodes)
-                if (pqF.Count > 0)
-                {
-                    int u = pqF.Dequeue();
-
-                    if (!settledF[u] && distF[u] < bestDist)
-                    {
-                        settledF[u] = true;
-                        visited++;
-
-                        if (!options.BenchmarkMode)
-                            await visualizer.OnNodeVisited(u);
-
-                        if (distB[u] < float.MaxValue)
-                        {
-                            float total = distF[u] + distB[u];
-                            if (total < bestDist)
-                            {
-                                bestDist = total;
-                                meetNode = u;
-                            }
-                        }
-
-                        foreach (var e in _ch.UpAdj[u])
-                        {
-                            float nd = distF[u] + e.Weight;
-                            if (nd < distF[e.Target])
-                            {
-                                distF[e.Target] = nd;
-                                prevF[e.Target] = u;
-                                pqF.Enqueue(e.Target, nd);
-                            }
-                        }
-                    }
-                }
-                if (pqB.Count > 0)
-                {
-                    int u = pqB.Dequeue();
-
-                    if (!settledB[u] && distB[u] < bestDist)
-                    {
-                        settledB[u] = true;
-                        visited++;
-
-                        if (!options.BenchmarkMode)
-                            await visualizer.OnNodeVisited(u);
-
-                        if (distF[u] < float.MaxValue)
-                        {
-                            float total = distF[u] + distB[u];
-                            if (total < bestDist)
-                            {
-                                bestDist = total;
-                                meetNode = u;
-                            }
-                        }
-
-                        foreach (var e in _ch.DownAdj[u])
-                        {
-                            //  Only follow edges going upward (to higher-level nodes)
-                            if (_ch.Level[e.Target] <= _ch.Level[u])
-                                continue;
-
-                            float nd = distB[u] + e.Weight;
-                            if (nd < distB[e.Target])
-                            {
-                                distB[e.Target] = nd;
-                                prevB[e.Target] = u;
-                                pqB.Enqueue(e.Target, nd);
-                            }
-                        }
-                    }
-                }
-
-                //  Termination
                 float minF = pqF.Count > 0 ? PeekPriority(pqF) : float.MaxValue;
                 float minB = pqB.Count > 0 ? PeekPriority(pqB) : float.MaxValue;
 
-                if (minF >= bestDist && minB >= bestDist)
-                    break;
+                if (minF >= bestDist && minB >= bestDist) break;
+
+                bool stepForward = minF <= minB;
+
+                if (stepForward && pqF.Count > 0)
+                {
+                    int u = pqF.Dequeue();
+
+                    if (settledF[u]) 
+                        continue;
+
+                    if (distF[u] >= bestDist) 
+                        continue;
+
+                    settledF[u] = true;
+                    visited++;
+
+                    if (!options.BenchmarkMode) 
+                        await visualizer.OnNodeVisited(u);
+
+                    if (distB[u] < float.MaxValue)
+                    {
+                        float total = distF[u] + distB[u];
+
+                        if (total < bestDist) { 
+                            bestDist = total; 
+                            meetNode = u; 
+                        }
+                    }
+
+                    foreach (var e in _ch.ForwardUp[u])
+                    {
+                        float nd = distF[u] + e.Weight;
+
+                        if (nd < distF[e.Target])
+                        {
+                            distF[e.Target] = nd;
+
+                            prevNodeF[e.Target] = u;
+
+                            prevMidF[e.Target] = e.ShortcutMid;
+
+                            pqF.Enqueue(e.Target, nd);
+                        }
+                    }
+                }
+                else if (pqB.Count > 0)
+                {
+                    int u = pqB.Dequeue();
+
+                    if (settledB[u]) 
+                        continue;
+
+                    if (distB[u] >= bestDist) 
+                        continue;
+
+                    settledB[u] = true;
+                    visited++;
+
+                    if (!options.BenchmarkMode) 
+                        await visualizer.OnNodeVisited(u);
+
+                    if (distF[u] < float.MaxValue)
+                    {
+                        float total = distF[u] + distB[u];
+
+                        if (total < bestDist) { 
+                            bestDist = total; 
+                            meetNode = u; 
+                        }
+                    }
+
+                    //  Each entry in BackwardUp[u] represents an original edge (e.Target -> u)
+                    //  Backward search relaxes this edge in reverse, updating dist for e.Target
+
+                    foreach (var e in _ch.BackwardUp[u])
+                    {
+                        float nd = distB[u] + e.Weight;
+
+                        if (nd < distB[e.Target])
+                        {
+                            distB[e.Target] = nd;
+
+                            prevNodeB[e.Target] = u;
+
+                            prevMidB[e.Target] = e.ShortcutMid;
+
+                            pqB.Enqueue(e.Target, nd);
+                        }
+                    }
+                }
             }
 
             sw.Stop();
@@ -183,27 +156,15 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
             if (meetNode == -1 || bestDist >= float.MaxValue)
             {
                 await visualizer.OnNoPathFound();
+
                 return RoutingResult.NoPath;
             }
 
-            //  Build packed path
-            //  Forward: start -> meetNode
-            var forwardPacked = new List<int>();
-            int c = meetNode;
-            while (c != -1) { forwardPacked.Add(c); c = prevF[c]; }
-            forwardPacked.Reverse();
+            //  Reconstruct unpacked path directly
+            //  We avoid building an intermediate "packed path" entirely;
+            //  instead we recursively unpack each edge as we walk the predecessor chains
 
-            //  Backward: meetNode -> end
-            var backwardPacked = new List<int>();
-            c = prevB[meetNode];
-            while (c != -1) { backwardPacked.Add(c); c = prevB[c]; }
-
-            //  Full packed path
-            var packedPath = new List<int>(forwardPacked);
-            packedPath.AddRange(backwardPacked);
-
-            //  Unpack
-            var unpacked = UnpackPath(packedPath.ToArray());
+            var unpacked = ReconstructPath(start, end, meetNode, prevNodeF, prevMidF, prevNodeB, prevMidB);
 
             double distanceMeters = ComputePathDistance(unpacked);
             await visualizer.OnPathFound(unpacked);
@@ -220,48 +181,127 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
             };
         }
 
-        /// <summary>
-        /// Takes consecutive node pairs and recursively unpacks shortcuts.
-        /// </summary>
-        private int[] UnpackPath(int[] packedPath)
+        // ===== Reconstruction =====
+
+        private int[] ReconstructPath(
+            int start, int end, int meet,
+            int[] prevNodeF, int[] prevMidF,
+            int[] prevNodeB, int[] prevMidB)
         {
-            if (packedPath.Length < 2)
-                return packedPath;
+            //  Gather forward "edges" (each represented by its target node and the mid of
+            //  the edge that settled it)
 
-            var result = new List<int> { packedPath[0] };
+            //  Walk meet -> start, then reverse
 
-            for (int i = 0; i < packedPath.Length - 1; i++)
-                UnpackEdge(packedPath[i], packedPath[i + 1], result);
+            var fwdEdges = new List<(int from, int to, int mid)>();
+
+            for (int c = meet; prevNodeF[c] != -1; c = prevNodeF[c])
+                fwdEdges.Add((prevNodeF[c], c, prevMidF[c]));
+
+            fwdEdges.Reverse();
+
+            //  Backward relaxation at u finds entry e in BackwardUp[u] with e.Target = v,
+            //  representing original edge v -> u
+            //  The relaxation sets prevNodeB[v] = u
+            //  So prevNodeB[v] = u corresponds to original edge v -> u
+           
+            //  Walking from meet outward: c, prevNodeB[c], prevNodeB[prevNodeB[c]], ..., end
+            //  Each pair (c, prevNodeB[c]) corresponds to original edge c -> prevNodeB[c]
+            //  (which is what we want for the meet -> end traversal in original-edge order)
+
+            var bwdEdges = new List<(int from, int to, int mid)>();
+
+            for (int c = meet; prevNodeB[c] != -1; c = prevNodeB[c])
+                bwdEdges.Add((c, prevNodeB[c], prevMidB[c]));
+
+            //  Build the unpacked path
+            var result = new List<int> { start };
+
+            foreach (var (from, to, mid) in fwdEdges)
+                UnpackEdge(from, to, mid, result, isForward: true);
+
+            foreach (var (from, to, mid) in bwdEdges)
+                UnpackEdge(from, to, mid, result, isForward: false);
+
+            Debug.WriteLine($"ReconstructPath: fwdEdges={fwdEdges.Count}, bwdEdges={bwdEdges.Count}, " +
+                            $"unpacked nodes={result.Count}");
 
             return result.ToArray();
         }
 
-        /// <summary>
-        /// Recursively unpack edge from u to v.
-        /// Uses the edge lookup which contains both directions.
-        /// Appends all nodes after u (u is already in result).
-        /// </summary>
-        private void UnpackEdge(int u, int v, List<int> result)
+        //  Unpack a single edge (from -> to) with the given shortcut mid
+
+        //  For forward edges: the edge IS in ForwardUp[from] with .ShortcutMid = mid (the
+        //      relaxation that set it)
+
+        //  For backward edges: the edge represents original direction from -> to;
+        //      the relaxation was on the entry e in BackwardUp[to] with e.Target = from and e.ShortcutMid = mid
+
+        //  To recurse, we need to find sub-edges (from -> mid) and (mid -> to)
+        //  Their mids come from the structures: we look them up in ForwardUp/BackwardUp
+
+        private void UnpackEdge(int from, int to, int mid, List<int> result, bool isForward)
         {
-            if (!_edgeLookup.TryGetValue((u, v), out var edge))
+            if (mid == -1)
             {
-                result.Add(v);
+                result.Add(to);
                 return;
             }
 
-            if (edge.ShortcutMid == -1)
+            //  Find the (from -> mid) edge and the (mid -> to) edge in the CH structure
+            //  and recurse
+
+            //  Each can be in ForwardUp or BackwardUp depending on level ordering
+
+            var (m1, ok1) = FindEdgeMid(from, mid);
+
+            if (!ok1)
             {
-                //  Original edge
-                result.Add(v);
+                Debug.WriteLine($"UnpackEdge: cannot find sub-edge ({from}->{mid}) of shortcut ({from}->{to} mid={mid})");
+                result.Add(to);
+
                 return;
             }
 
-            int mid = edge.ShortcutMid;
+            var (m2, ok2) = FindEdgeMid(mid, to);
 
-            //  Shortcut u -> v goes through mid.
-            //  Recursively unpack u -> mid, then mid -> v.
-            UnpackEdge(u, mid, result);
-            UnpackEdge(mid, v, result);
+            if (!ok2)
+            {
+                Debug.WriteLine($"UnpackEdge: cannot find sub-edge ({mid}->{to}) of shortcut ({from}->{to} mid={mid})");
+                result.Add(to);
+
+                return;
+            }
+
+            UnpackEdge(from, mid, m1, result, isForward);
+            UnpackEdge(mid, to, m2, result, isForward);
+        }
+
+        //  Find the ShortcutMid for the directed edge (from -> to) by searching the CH adjacency lists
+        //  Returns (mid, true) if found, (default, false) otherwise
+
+        //  The edge from -> to is stored as:
+        //      - ForwardUp[from] entry with .Target == to, IF level[to] > level[from]
+        //      - BackwardUp[to] entry with .Target == from, IF level[from] > level[to]
+
+        //  We pick the right list based on level comparison and scan it
+        private (int mid, bool ok) FindEdgeMid(int from, int to)
+        {
+            if (_ch.Level[to] > _ch.Level[from])
+            {
+                //  Up-edge: in ForwardUp[from]
+                var list = _ch.ForwardUp[from];
+                for (int i = 0; i < list.Count; i++)
+                    if (list[i].Target == to) return (list[i].ShortcutMid, true);
+            }
+            else
+            {
+                //  Down-edge: in BackwardUp[to] (entries are original edges into to)
+                var list = _ch.BackwardUp[to];
+                for (int i = 0; i < list.Count; i++)
+                    if (list[i].Target == from) return (list[i].ShortcutMid, true);
+            }
+            return (-1, false);
         }
 
         private static float PeekPriority(PriorityQueue<int, float> pq)
@@ -274,14 +314,12 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
         {
             var g = _ch.BaseGraph;
             double total = 0;
-
             for (int i = 0; i < path.Length - 1; i++)
             {
                 total += RoadGraphBuilder.Haversine(
                     (g.NodeLat[path[i]], g.NodeLon[path[i]]),
                     (g.NodeLat[path[i + 1]], g.NodeLon[path[i + 1]]));
             }
-
             return total;
         }
     }

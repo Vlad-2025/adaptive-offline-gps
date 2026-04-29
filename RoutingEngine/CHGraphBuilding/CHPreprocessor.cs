@@ -6,11 +6,11 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
 {
     public class CHPreprocessor
     {
-        private List<CHEdge>[] _adj;
-        private List<CHEdge>[] _revAdj;
+        private List<CHEdge>[] _adj;       // forward: _adj[u] = edges u -> v
+        private List<CHEdge>[] _revAdj;    // reverse: _revAdj[u] = edges v -> u, stored at u with .Target = v
         private bool[] _contracted;
         private int[] _level;
-        private int[] _depth;       // max shortcut nesting depth per node
+        private int[] _depth;
         private int _nodeCount;
 
         public CHGraph Preprocess(RoadGraph baseGraph)
@@ -22,7 +22,6 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
             _level = new int[_nodeCount];
             _depth = new int[_nodeCount];
 
-            //  Build mutable forward + reverse adjacency from CSR
             _adj = new List<CHEdge>[_nodeCount];
             _revAdj = new List<CHEdge>[_nodeCount];
 
@@ -45,7 +44,6 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
 
             Debug.WriteLine($"CH: {_nodeCount} nodes, {baseGraph.EdgeCount} edges");
 
-            //  Initial priorities
             var pq = new PriorityQueue<int, int>();
             for (int i = 0; i < _nodeCount; i++)
                 pq.Enqueue(i, ComputePriority(i));
@@ -57,7 +55,6 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
                 int node = pq.Dequeue();
                 if (_contracted[node]) continue;
 
-                //  Lazy update
                 int fresh = ComputePriority(node);
                 if (pq.Count > 0)
                 {
@@ -76,7 +73,6 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
                 if (contractionOrder % 100000 == 0)
                     Debug.WriteLine($"CH: {contractionOrder}/{_nodeCount} ({100.0 * contractionOrder / _nodeCount:F1}%)");
 
-                //  Re-enqueue affected neighbors
                 foreach (var e in _adj[node])
                     if (!_contracted[e.Target])
                         pq.Enqueue(e.Target, ComputePriority(e.Target));
@@ -92,31 +88,23 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
             return BuildCHGraph(baseGraph);
         }
 
-        //  PRIORITY
+        // ===== Priority =====
 
         private int ComputePriority(int node)
         {
-            //  Collect live (uncontracted) in/out neighbors
             GetLiveNeighbors(node, out var inEdges, out var outEdges);
 
             int edgesRemoved = inEdges.Count + outEdges.Count;
-
-            //  Simulate contraction: count shortcuts needed
             int shortcutsAdded = CountShortcuts(node, inEdges, outEdges);
-
             int edgeDiff = shortcutsAdded - edgesRemoved;
 
-            //  Contracted neighbors
             int contractedNeighbors = 0;
             foreach (var e in _adj[node])
                 if (_contracted[e.Target]) contractedNeighbors++;
             foreach (var e in _revAdj[node])
                 if (_contracted[e.Target]) contractedNeighbors++;
 
-            int depth = _depth[node];
-
-            //  Geisberger "economical" variant weights
-            return 2 * edgeDiff + 5 * contractedNeighbors + 2 * depth;
+            return 2 * edgeDiff + 5 * contractedNeighbors + 2 * _depth[node];
         }
 
         private void GetLiveNeighbors(int node,
@@ -127,30 +115,21 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
             outEdges = new List<(int, float)>();
 
             foreach (var e in _revAdj[node])
-                if (!_contracted[e.Target])
-                    inEdges.Add((e.Target, e.Weight));
+                if (!_contracted[e.Target]) inEdges.Add((e.Target, e.Weight));
 
             foreach (var e in _adj[node])
-                if (!_contracted[e.Target])
-                    outEdges.Add((e.Target, e.Weight));
+                if (!_contracted[e.Target]) outEdges.Add((e.Target, e.Weight));
         }
 
-        /// <summary>
-        /// Count how many shortcuts would be needed if we contract this node.
-        /// Uses batched witness search: one search per in-neighbor covers all out-neighbors.
-        /// </summary>
         private int CountShortcuts(int node,
             List<(int id, float weight)> inEdges,
             List<(int id, float weight)> outEdges)
         {
-            if (inEdges.Count == 0 || outEdges.Count == 0)
-                return 0;
+            if (inEdges.Count == 0 || outEdges.Count == 0) return 0;
 
             int count = 0;
-
             foreach (var (u, wIn) in inEdges)
             {
-                //  Max possible shortcut weight from u through node
                 float maxW = 0;
                 foreach (var (w, wOut) in outEdges)
                 {
@@ -160,7 +139,6 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
                 }
                 if (maxW == 0) continue;
 
-                //  One witness search from u, limited to maxW
                 var witnesses = WitnessSearch(u, node, maxW);
 
                 foreach (var (w, wOut) in outEdges)
@@ -171,11 +149,10 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
                         count++;
                 }
             }
-
             return count;
         }
 
-        //  CONTRACTION
+        // ===== Contraction =====
 
         private void ContractNode(int node)
         {
@@ -201,10 +178,11 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
 
                     if (!witnesses.TryGetValue(w, out float witDist) || witDist > shortcutW)
                     {
-                        _adj[u].Add(new CHEdge(w, shortcutW, node));
-                        _revAdj[w].Add(new CHEdge(u, shortcutW, node));
+                        // If a shortcut u -> w already exists, keep the better one
+                        // (avoids parallel-shortcut bloat that confuses query/unpacking).
+                        ReplaceOrAddEdge(_adj[u], w, shortcutW, node);
+                        ReplaceOrAddEdge(_revAdj[w], u, shortcutW, node);
 
-                        // Update depth
                         int d = Math.Max(_depth[u], _depth[w]) + 1;
                         if (d > _depth[u]) _depth[u] = d;
                         if (d > _depth[w]) _depth[w] = d;
@@ -213,20 +191,24 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
             }
         }
 
-        //  WITNESS SEARCH
+        private static void ReplaceOrAddEdge(List<CHEdge> list, int target, float weight, int mid)
+        {
+            for (int i = 0; i < list.Count; i++)
+            {
+                if (list[i].Target == target)
+                {
+                    if (weight < list[i].Weight)
+                        list[i] = new CHEdge(target, weight, mid);
+                    return;
+                }
+            }
+            list.Add(new CHEdge(target, weight, mid));
+        }
 
-        /// <summary>
-        /// Batched local Dijkstra from source, avoiding excludeNode,
-        /// bounded by maxWeight. Returns shortest distances to all
-        /// reachable nodes within the limit.
-        /// 
-        /// Uses proper settled-set tracking to avoid processing nodes
-        /// multiple times.
-        /// </summary>
+        // ===== Witness search =====
+
         private Dictionary<int, float> WitnessSearch(int source, int excludeNode, float maxWeight)
         {
-            //  Hop limit scales with graph density, road networks are sparse
-            //  so 500 settled nodes covers a large local area
             const int MaxSettled = 500;
 
             var dist = new Dictionary<int, float>(128) { [source] = 0 };
@@ -237,29 +219,18 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
             while (pq.Count > 0 && settled.Count < MaxSettled)
             {
                 int u = pq.Dequeue();
-
-                //  Skip already settled
-                if (settled.Contains(u))
-                    continue;
-
-                //  Get current best distance
-                if (!dist.TryGetValue(u, out float d))
-                    continue;
-
-                //  Beyond our weight limit - stop
-                if (d > maxWeight)
-                    break;
+                if (settled.Contains(u)) continue;
+                if (!dist.TryGetValue(u, out float d)) continue;
+                if (d > maxWeight) break;
 
                 settled.Add(u);
 
                 foreach (var e in _adj[u])
                 {
-                    if (e.Target == excludeNode || _contracted[e.Target])
-                        continue;
+                    if (e.Target == excludeNode || _contracted[e.Target]) continue;
 
                     float nd = d + e.Weight;
-                    if (nd > maxWeight)
-                        continue;
+                    if (nd > maxWeight) continue;
 
                     if (!dist.TryGetValue(e.Target, out float old) || nd < old)
                     {
@@ -268,25 +239,42 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
                     }
                 }
             }
-
             return dist;
         }
-        //  BUILD FINAL CH GRAPH
 
+        // ===== assembly =====
+
+        /// <summary>
+        /// Walk every edge in the contracted graph exactly once and place it into
+        /// ForwardUp / BackwardUp according to the up-edge invariant.
+        /// 
+        /// For each directed edge u -> v in _adj:
+        ///   - if level[v] &gt; level[u]: it's an up-edge.
+        ///       -> ForwardUp[u] gets (v, w, mid)         (forward search uses this)
+        ///       -> BackwardUp[v] gets (u, w, mid)        (backward search at v can step to u)
+        ///   - if level[u] &gt; level[v]: this is a DOWN-edge from u's perspective,
+        ///     but viewed from v it's an INCOMING up-edge. By symmetry of the CH
+        ///     contraction, the symmetric edge v -> u also exists in _adj (we built
+        ///     _revAdj alongside _adj for exactly this reason — every shortcut was
+        ///     added to both). So we'll see it as an up-edge when we process v's
+        ///     out-list, and we don't add anything here.
+        /// 
+        /// This means we only act on up-edges and skip down-edges entirely,
+        /// guaranteeing zero duplicates.
+        /// </summary>
         private CHGraph BuildCHGraph(RoadGraph baseGraph)
         {
             int n = _nodeCount;
-
-            var upAdj = new List<CHEdge>[n];
-            var downAdj = new List<CHEdge>[n];
+            var forwardUp = new List<CHEdge>[n];
+            var backwardUp = new List<CHEdge>[n];
 
             for (int i = 0; i < n; i++)
             {
-                upAdj[i] = new List<CHEdge>();
-                downAdj[i] = new List<CHEdge>();
+                forwardUp[i] = new List<CHEdge>();
+                backwardUp[i] = new List<CHEdge>();
             }
 
-            int upCount = 0, downCount = 0;
+            int fwdCount = 0, bwdCount = 0;
 
             for (int u = 0; u < n; u++)
             {
@@ -294,29 +282,42 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
                 {
                     if (_level[e.Target] > _level[u])
                     {
-                        upAdj[u].Add(e);
-                        upCount++;
-
-                        downAdj[e.Target].Add(new CHEdge(u, e.Weight, e.ShortcutMid));
-                        downCount++;
+                        forwardUp[u].Add(e);
+                        fwdCount++;
                     }
-                    else if (_level[u] > _level[e.Target])
+                }
+
+                foreach (var e in _revAdj[u])
+                {
+                    // _revAdj[u] holds entries (v, w) representing original edges v -> u.
+                    // Backward search at u wants reverse-graph up-edges, i.e. those where
+                    // level[v] > level[u]. Same edge data, different home.
+                    if (_level[e.Target] > _level[u])
                     {
-                        downAdj[e.Target].Add(new CHEdge(u, e.Weight, e.ShortcutMid));
-                        downCount++;
+                        backwardUp[u].Add(e);
+                        bwdCount++;
                     }
                 }
             }
 
-            Debug.WriteLine($"CH: {upCount} up-edges, {downCount} down-edges");
+            Debug.WriteLine($"CH: {fwdCount} forward up-edges, {bwdCount} backward up-edges");
+
+            // Note: fwdCount and bwdCount need NOT be equal. For a directed road graph
+            // with antiparallel edges of different weights (typical OSM two-way streets
+            // imported as two directed edges), an edge u->v and its companion v->u have
+            // different weights and end up on different sides of the up/down split.
+            // Specifically: edge u->v with level[v]>level[u] contributes to ForwardUp[u]
+            // and BackwardUp[v]; the companion v->u is a down-edge in original direction
+            // (filtered from ForwardUp) but is an up-edge in reverse from u's view, so
+            // it contributes to BackwardUp[u] with no forward counterpart. Both lists
+            // still contain only up-edges — the data structure is correct.
 
             for (int i = 0; i < n; i++)
             {
-                upAdj[i].TrimExcess();
-                downAdj[i].TrimExcess();
+                forwardUp[i].TrimExcess();
+                backwardUp[i].TrimExcess();
             }
 
-            //  Free preprocessing data
             _adj = null;
             _revAdj = null;
             _contracted = null;
@@ -326,8 +327,8 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
             {
                 BaseGraph = baseGraph,
                 Level = _level,
-                UpAdj = upAdj,
-                DownAdj = downAdj
+                ForwardUp = forwardUp,
+                BackwardUp = backwardUp
             };
         }
     }

@@ -187,7 +187,7 @@ namespace adaptive_offline_gps.EngineMap
 
                 await Task.Run(()=> CHGraphSerializer.Save(chGraph, Path.ChangeExtension(osmFilePath, ".chgr")));
                 
-                int shortcuts = chGraph.UpAdj.Sum(a => a.Count(e => e.ShortcutMid != -1));
+                int shortcuts = chGraph.ForwardUp.Sum(a => a.Count(e => e.ShortcutMid != -1));
                 Debug.WriteLine($"CH has {shortcuts} shortcuts");
             }
 

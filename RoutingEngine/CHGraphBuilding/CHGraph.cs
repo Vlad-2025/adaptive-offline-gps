@@ -20,12 +20,12 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
         /// Upward adjacency: edges from u where Level[target] > Level[u].
         /// Used by the forward search.
         /// </summary>
-        public List<CHEdge>[] UpAdj;
+        public List<CHEdge>[] ForwardUp;
 
         /// <summary>
         /// Downward adjacency (reversed upward edges): 
         /// Used by the backward search.
         /// </summary>
-        public List<CHEdge>[] DownAdj;
+        public List<CHEdge>[] BackwardUp;
     }
 }

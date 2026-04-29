@@ -119,7 +119,7 @@ namespace adaptive_offline_gps.EngineMap
                     int from = pathNodes[i - 1];
                     int to = pathNodes[i];
 
-                    // Try forward direction: from → to
+                    //  Try forward direction: from -> to
                     bool found = false;
                     for (int e = _graph.EdgeHead[from]; e < _graph.EdgeHead[from + 1]; e++)
                     {
@@ -141,7 +141,7 @@ namespace adaptive_offline_gps.EngineMap
                         }
                     }
 
-                    // Try reverse direction: to → from (for undirected roads,
+                    // Try reverse direction: to -> from (for undirected roads,
                     // the edge might only be stored in one direction)
                     if (!found)
                     {

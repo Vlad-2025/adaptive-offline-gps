@@ -18,7 +18,7 @@ namespace adaptive_offline_gps.RoutingEngine
     {
         private readonly float[] _allLat;
         private readonly float[] _allLon;
-        private readonly int[] _nearestJunction;   // allNodeIdx → junction graph index
+        private readonly int[] _nearestJunction;   // allNodeIdx -> junction graph index
         private readonly RoadGraph _graph;          // for junction coords (pin placement)
 
         private readonly int _gridSize;
@@ -48,17 +48,25 @@ namespace adaptive_offline_gps.RoutingEngine
 
             int totalNodes = allLat.Length;
 
-            // Find bounding box
+            //  Find bounding box
             _minLat = float.MaxValue; _minLon = float.MaxValue;
             float maxLat = float.MinValue, maxLon = float.MinValue;
 
             for (int i = 0; i < totalNodes; i++)
             {
                 float lat = allLat[i], lon = allLon[i];
-                if (lat < _minLat) _minLat = lat;
-                if (lat > maxLat) maxLat = lat;
-                if (lon < _minLon) _minLon = lon;
-                if (lon > maxLon) maxLon = lon;
+
+                if (lat < _minLat) 
+                    _minLat = lat;
+
+                if (lat > maxLat) 
+                    maxLat = lat;
+
+                if (lon < _minLon) 
+                    _minLon = lon;
+
+                if (lon > maxLon) 
+                    maxLon = lon;
             }
 
             _minLat -= 0.0001f; _minLon -= 0.0001f;
@@ -66,18 +74,18 @@ namespace adaptive_offline_gps.RoutingEngine
             _latRange = maxLat - _minLat;
             _lonRange = maxLon - _minLon;
 
-            // Count nodes per cell
+            //  Count nodes per cell
             var counts = new int[gridSize * gridSize];
             for (int i = 0; i < totalNodes; i++)
                 counts[CellIndex(allLat[i], allLon[i])]++;
 
-            // Allocate
+            //  Allocate
             _cells = new int[gridSize * gridSize][];
             for (int c = 0; c < _cells.Length; c++)
                 if (counts[c] > 0)
                     _cells[c] = new int[counts[c]];
 
-            // Fill
+            //  Fill
             var cursors = new int[gridSize * gridSize];
             for (int i = 0; i < totalNodes; i++)
             {

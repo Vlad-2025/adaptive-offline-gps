@@ -310,7 +310,7 @@ namespace adaptive_offline_gps
 
                 _routingController.RouteReadyToRun += (startIdx, endIdx) =>
                 {
-                    LeftPanel.Log($"route {startIdx} → {endIdx}", DebugConsole.LogLevel.Info);
+                    LeftPanel.Log($"route {startIdx} -> {endIdx}", DebugConsole.LogLevel.Info);
                     LeftPanel.SetRunEnabled(true);
                 };
             }

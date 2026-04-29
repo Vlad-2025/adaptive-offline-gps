@@ -120,9 +120,9 @@ namespace adaptive_offline_gps.Data
                     index.Minor.Insert(merged.EnvelopeInternal, f);
                 }
 
-                Debug.WriteLine($"major:  {majorWays.Count} ways → {index.MajorFull.Count} merged");
-                Debug.WriteLine($"medium: {mediumWays.Count} ways → {index.MediumFull.Count} merged");
-                Debug.WriteLine($"minor:  {minorWays.Count} ways → {index.Minor.Count} merged");
+                Debug.WriteLine($"major:  {majorWays.Count} ways -> {index.MajorFull.Count} merged");
+                Debug.WriteLine($"medium: {mediumWays.Count} ways -> {index.MediumFull.Count} merged");
+                Debug.WriteLine($"minor:  {minorWays.Count} ways -> {index.Minor.Count} merged");
 
                 index.BuildAll();
                 return index;
