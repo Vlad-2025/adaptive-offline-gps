@@ -165,7 +165,7 @@ namespace adaptive_offline_gps.EngineMap
                 nodeIndex = null!;
             }
 
-            onStatusUpdate?.Invoke("building spacial index...");
+            onStatusUpdate?.Invoke("building spatial index...");
 
             nodeIndex = await Task.Run(() => new NodeGridIndex(graph));
 
