@@ -2,12 +2,15 @@
 using adaptive_offline_gps.RoutingEngine;
 using adaptive_offline_gps.RoutingEngine.GraphAlgorithms;
 using adaptive_offline_gps.RoutingEngine.RoadGraphBuilding;
+using BruTile.Predefined;
+using BruTile.Web;
 using Mapsui;
 using Mapsui.Extensions;
 using Mapsui.Layers;
 using Mapsui.Limiting;
 using Mapsui.Projections;
 using Mapsui.Styles;
+using Mapsui.Tiling.Layers;
 using Mapsui.UI.Wpf;
 using NetTopologySuite.Geometries;
 using System;
@@ -51,6 +54,20 @@ namespace adaptive_offline_gps.EngineMap
 
         public double CurrentResolution => _mapControl.Map?.Navigator?.Viewport.Resolution ?? double.MaxValue;
 
+        private static TileLayer CreateOsmTileLayer()
+        {
+            var tileSource = new HttpTileSource(
+                new GlobalSphericalMercator(),
+                "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                new[] { "a", "b", "c" },
+                name: "OpenStreetMap",
+                configureHttpRequestMessage: msg =>
+                    msg.Headers.TryAddWithoutValidation("User-Agent",
+                        "OSMRoutingBenchmark/1.0 (your@email.com)"));
+
+            return new TileLayer(tileSource) { Name = "OSM" };
+        }
+
         private MapEngine
             (
             MapControl mapControl,
@@ -70,7 +87,7 @@ namespace adaptive_offline_gps.EngineMap
 
             var map = new Map();
 
-            map.Layers.Add(Mapsui.Tiling.OpenStreetMap.CreateTileLayer());
+            map.Layers.Add(CreateOsmTileLayer());
 
             _roadLayer      = new MemoryLayer { 
                 Name = "Roads"
