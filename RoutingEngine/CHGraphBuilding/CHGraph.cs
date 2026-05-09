@@ -5,7 +5,7 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
     public class CHGraph
     {
         /// <summary>
-        /// The original road graph — still needed for node coordinates,
+        /// The original road graph - still needed for node coordinates,
         /// path distance calculation, visualization, pin placement, etc.
         /// </summary>
         public RoadGraph BaseGraph;

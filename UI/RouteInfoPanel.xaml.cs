@@ -22,11 +22,11 @@ namespace adaptive_offline_gps.UI
 
         public void Clear()
         {
-            TxtStart.Text = "—";
-            TxtEnd.Text = "—";
-            TxtDistance.Text = "—";
-            TxtTime.Text = "—";
-            TxtNodes.Text = "—";
+            TxtStart.Text = "-";
+            TxtEnd.Text = "-";
+            TxtDistance.Text = "-";
+            TxtTime.Text = "-";
+            TxtNodes.Text = "-";
         }
 
         private static string FormatTime(double seconds)

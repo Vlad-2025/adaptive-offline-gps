@@ -19,7 +19,7 @@
                     </Ellipse.Fill>
                 </Ellipse>
                 <TextBlock Text="start  " Style="{StaticResource StatusLabel}"/>
-                <TextBlock x:Name="TxtStart" Text="—" Style="{StaticResource StatusValue}"/>
+                <TextBlock x:Name="TxtStart" Text="-" Style="{StaticResource StatusValue}"/>
 
                 <!-- End -->
                 <Ellipse Width="8" Height="8" Margin="8,0,5,0" VerticalAlignment="Center">
@@ -28,17 +28,17 @@
                     </Ellipse.Fill>
                 </Ellipse>
                 <TextBlock Text="dest  " Style="{StaticResource StatusLabel}"/>
-                <TextBlock x:Name="TxtEnd" Text="—" Style="{StaticResource StatusValue}"/>
+                <TextBlock x:Name="TxtEnd" Text="-" Style="{StaticResource StatusValue}"/>
             </StackPanel>
 
             <!-- Route metrics row -->
             <StackPanel Orientation="Horizontal">
                 <TextBlock Text="distance  " Style="{StaticResource StatusLabel}"/>
-                <TextBlock x:Name="TxtDistance" Text="—" Style="{StaticResource StatusValue}"/>
+                <TextBlock x:Name="TxtDistance" Text="-" Style="{StaticResource StatusValue}"/>
                 <TextBlock Text="est. time  " Style="{StaticResource StatusLabel}"/>
-                <TextBlock x:Name="TxtTime"     Text="—" Style="{StaticResource StatusValue}"/>
+                <TextBlock x:Name="TxtTime"     Text="-" Style="{StaticResource StatusValue}"/>
                 <TextBlock Text="nodes visited  " Style="{StaticResource StatusLabel}"/>
-                <TextBlock x:Name="TxtNodes"    Text="—" Style="{StaticResource StatusValue}"/>
+                <TextBlock x:Name="TxtNodes"    Text="-" Style="{StaticResource StatusValue}"/>
             </StackPanel>
         </StackPanel>
     </Border>

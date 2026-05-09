@@ -37,7 +37,7 @@
                             <ComboBoxItem Content="Dijkstra"          IsSelected="True"/>
                             <ComboBoxItem Content="A*"/>
                             <ComboBoxItem Content="CH"/>
-                            <ComboBoxItem Content="Genetic"/>
+                            <ComboBoxItem Content="CH (alt)"/>
                         </ComboBox>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
                             <TextBlock Text="step delay " Foreground="#3A3A5C" FontSize="10" FontFamily="Consolas" VerticalAlignment="Center"/>

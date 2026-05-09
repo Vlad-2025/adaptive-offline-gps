@@ -5,7 +5,7 @@ using System.IO;
 namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
 {
     /// <summary>
-    /// Binary serializer for CHGraph. Version bumped to 2 — old .chgr caches
+    /// Binary serializer for CHGraph. Version bumped to 2 - old .chgr caches
     /// are invalidated automatically on load and will be rebuilt.
     /// </summary>
     public static class CHGraphSerializer

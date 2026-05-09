@@ -102,7 +102,7 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
                 }
                 catch
                 {
-                    // Version mismatch or corrupt — rebuild
+                    //  Version mismatch or corrupt - rebuild
                 }
             }
             g = null;

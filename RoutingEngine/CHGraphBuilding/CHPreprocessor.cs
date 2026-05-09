@@ -255,7 +255,7 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
         ///   - if level[u] &gt; level[v]: this is a DOWN-edge from u's perspective,
         ///     but viewed from v it's an INCOMING up-edge. By symmetry of the CH
         ///     contraction, the symmetric edge v -> u also exists in _adj (we built
-        ///     _revAdj alongside _adj for exactly this reason — every shortcut was
+        ///     _revAdj alongside _adj for exactly this reason - every shortcut was
         ///     added to both). So we'll see it as an up-edge when we process v's
         ///     out-list, and we don't add anything here.
         /// 
@@ -310,7 +310,7 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
             // and BackwardUp[v]; the companion v->u is a down-edge in original direction
             // (filtered from ForwardUp) but is an up-edge in reverse from u's view, so
             // it contributes to BackwardUp[u] with no forward counterpart. Both lists
-            // still contain only up-edges — the data structure is correct.
+            // still contain only up-edges - the data structure is correct.
 
             for (int i = 0; i < n; i++)
             {

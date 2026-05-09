@@ -63,7 +63,7 @@ namespace adaptive_offline_gps.WebDownloader
                         pbfUrl = MakeAbsolute(pbfHref, pageUrl);
                 }
 
-                //  Cell 2: size like "(817&nbsp;MB)" — may be missing
+                //  Cell 2: size like "(817&nbsp;MB)" - may be missing
                 long sizeBytes = -1;
 
                 if (cells.Count > 2)

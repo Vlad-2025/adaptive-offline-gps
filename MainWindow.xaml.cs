@@ -114,6 +114,9 @@ namespace adaptive_offline_gps
 
         private CancellationTokenSource? _routingCts;
 
+        // When the user picks "CH (alt)", we branch before the IRoutingAlgorithm path
+        // because alternatives returns RoutingResult[] not RoutingResult.
+
         private async void OnRunRequested()
         {
             if (_mapEngine == null || _routingController == null || _mapVisualizer == null)
@@ -151,32 +154,99 @@ namespace adaptive_offline_gps
             }
 
             LeftPanel.Log($"algorithm: '{LeftPanel.SelectedAlgorithm}'");
-            // Pick algorithm from combo
-            IRoutingAlgorithm algo = LeftPanel.SelectedAlgorithm switch
-            {
-                "Dijkstra"                  => new DijkstraAlgorithm(),
-                "A*"                        => new AStarAlgorithm(),
-                //"Bidirectional A*"        => new BidirectionalAStarAlgorithm(),
-                //"Genetic"                 => new GeneticAlgorithm(),
-                "CH"   => new CHAlgorithmWrapper(_mapEngine.ChGraph),
-                _                           => new DijkstraAlgorithm(),
-            };
 
-            //  Reset visualization layers
             _mapVisualizer?.SetOptions(options);
             _mapVisualizer?.Reset();
 
-            if (algo is CHAlgorithmWrapper)
-            {
-                CHDebugVerifier.Verify(
-                    _mapEngine.Graph,
-                    _mapEngine.ChGraph,
-                    _routingController.StartNodeIndex,
-                    _routingController.EndNodeIndex);
-            }
-
             try
             {
+                //  Branch: CH alternatives goes through a separate path
+                if (LeftPanel.SelectedAlgorithm == "CH (alt)")
+                {
+                    CHDebugVerifier.Verify(
+                        _mapEngine.Graph,
+                        _mapEngine.ChGraph,
+                        _routingController.StartNodeIndex,
+                        _routingController.EndNodeIndex);
+
+                    LeftPanel.Log("running CH (alt)...");
+
+                    var ch = new CHAlgorithmWrapper(_mapEngine.ChGraph);
+                    const int maxAlternatives = 2;
+
+                    var results = await ch.FindAlternativesAsync(
+                        _routingController.StartNodeIndex,
+                        _routingController.EndNodeIndex,
+                        maxAlternatives,
+                        options,
+                        _mapVisualizer);
+
+                    //  results[0] is always the optimal (or RoutingResult.NoPath if nothing found)
+                    //  results[1..n] are accepted alternatives
+                    if (results.Length == 0 || !results[0].PathFound)
+                    {
+                        LeftPanel.Log("no path found", DebugConsole.LogLevel.Warning);
+                        return;
+                    }
+
+                    //  Render optimal + alternatives together
+                    var optimal = results[0];
+                    var alts    = new int[results.Length - 1][];
+
+                    for (int i = 1; i < results.Length; i++)
+                        alts[i - 1] = results[i].Path;
+
+                    await _mapVisualizer.OnAlternativesFound(optimal.Path, alts);
+
+                    //  Update the info panel with the optimal stats
+                    RouteInfoPanel.Update(
+                        optimal.DistanceMetres / 1000.0,
+                        optimal.TotalCost,
+                        optimal.NodesVisited);
+
+                    //  Log a summary line per route so the user sees what was found
+                    LeftPanel.Log(
+                        $"CH (alt) optimal: {optimal.DistanceMetres / 1000.0:F1}km  " +
+                        $"cost={optimal.TotalCost:F0}  {optimal.ElapsedMs}ms",
+                        DebugConsole.LogLevel.Ok
+                    );
+
+                    for (int i = 0; i < alts.Length; i++)
+                    {
+                        var alt = results[i + 1];
+                        double stretchPct = 100.0 * (alt.TotalCost - optimal.TotalCost) / optimal.TotalCost;
+
+                        LeftPanel.Log(
+                            $"  alt #{i + 1}: {alt.DistanceMetres / 1000.0:F1}km  " +
+                            $"cost={alt.TotalCost:F0}  (+{stretchPct:F1}%)",
+                            DebugConsole.LogLevel.Info
+                        );
+                    }
+
+                    if (alts.Length == 0)
+                        LeftPanel.Log("\t(no alternatives passed filtering)", DebugConsole.LogLevel.Info);
+
+                    return;
+                }
+
+                //  Standard single-path algorithms via IRoutingAlgorithm
+                IRoutingAlgorithm algo = LeftPanel.SelectedAlgorithm switch
+                {
+                    "Dijkstra" => new DijkstraAlgorithm(),
+                    "A*" => new AStarAlgorithm(),
+                    "CH" => new CHAlgorithmWrapper(_mapEngine.ChGraph),
+                    _ => new DijkstraAlgorithm(),
+                };
+
+                if (algo is CHAlgorithmWrapper)
+                {
+                    CHDebugVerifier.Verify(
+                        _mapEngine.Graph,
+                        _mapEngine.ChGraph,
+                        _routingController.StartNodeIndex,
+                        _routingController.EndNodeIndex);
+                }
+
                 LeftPanel.Log($"running {algo.Name}...");
 
                 var result = await algo.FindPathAsync(
@@ -197,7 +267,8 @@ namespace adaptive_offline_gps
                     LeftPanel.Log(
                         $"{algo.Name}  {result.DistanceMetres / 1000.0:F1}km  " +
                         $"{result.NodesVisited:N0} nodes  {result.ElapsedMs}ms",
-                        DebugConsole.LogLevel.Ok);
+                        DebugConsole.LogLevel.Ok
+                    );
                 }
                 else
                 {

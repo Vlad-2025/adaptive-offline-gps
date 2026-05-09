@@ -53,7 +53,7 @@ namespace adaptive_offline_gps.RoutingEngine.GraphAlgorithms
             }
             else if (!dijkFound)
             {
-                Debug.WriteLine("No path exists in base graph either — nodes may be disconnected.");
+                Debug.WriteLine("No path exists in base graph either - nodes may be disconnected.");
             }
 
             Debug.WriteLine("=== END VERIFY ===");
@@ -124,7 +124,7 @@ namespace adaptive_offline_gps.RoutingEngine.GraphAlgorithms
             //  Mirrors CHQuery: step the side whose pq top is smaller, terminate when
             //  both tops are >= bestDist
 
-            //  No level checks — every edge in ForwardUp / BackwardUp is up-directed by construction
+            //  No level checks - every edge in ForwardUp / BackwardUp is up-directed by construction
 
             while (pqF.Count > 0 || pqB.Count > 0)
             {
