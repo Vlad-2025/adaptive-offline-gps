@@ -58,6 +58,9 @@ namespace adaptive_offline_gps
             LeftPanel.RunRequested      += OnRunRequested;
             LeftPanel.CancelRequested   += OnCancelRequested;
 
+            LeftPanel.BenchmarkRequested     += OnBenchmarkRequested;
+            BenchmarkPanelView.BackRequested += OnBenchmarkBackRequested;
+
             UpdateMapSquare();
         }
 
@@ -107,6 +110,7 @@ namespace adaptive_offline_gps
 
             RouteInfoPanel.Clear();
             LeftPanel.SetRunEnabled(false);
+            LeftPanel.SetBenchmarkEnabled(false);
             LeftPanel.Log("route cleared");
         }
 
@@ -296,6 +300,31 @@ namespace adaptive_offline_gps
             _routingCts?.Cancel();
         }
 
+        private void OnBenchmarkRequested()
+        {
+            if (_mapEngine == null || _routingController == null)
+            {
+                LeftPanel.Log("engine not ready", DebugConsole.LogLevel.Warning);
+                return;
+            }
+
+            //  Hand current pin state to the panel so single-pair mode is available if pins exist
+            BenchmarkPanelView.PrepareForRun(
+                _routingController.StartNodeIndex,
+                _routingController.EndNodeIndex);
+
+            //  Hide map area, show benchmark
+            MapContainer.Visibility = Visibility.Collapsed;
+            BenchmarkPanelView.Visibility = Visibility.Visible;
+        }
+
+        private void OnBenchmarkBackRequested()
+        {
+            BenchmarkPanelView.Visibility = Visibility.Collapsed;
+            MapContainer.Visibility = Visibility.Visible;
+            LeftPanel.Log("returned from benchmark", DebugConsole.LogLevel.Info);
+        }
+
         //  =================== Download Panel
         private void ResetToStartup()
         {
@@ -379,10 +408,13 @@ namespace adaptive_offline_gps
                     RouteInfoPanel
                     );
 
+                BenchmarkPanelView.Initialize(_mapEngine.Graph, _mapEngine.ChGraph, filePath);
+
                 _routingController.RouteReadyToRun += (startIdx, endIdx) =>
                 {
                     LeftPanel.Log($"route {startIdx} -> {endIdx}", DebugConsole.LogLevel.Info);
                     LeftPanel.SetRunEnabled(true);
+                    LeftPanel.SetBenchmarkEnabled(true);
                 };
             }
             catch (Exception ex)

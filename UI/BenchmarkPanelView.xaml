@@ -1,0 +1,353 @@
+<UserControl x:Class="adaptive_offline_gps.UI.BenchmarkPanelView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Border Background="#0D0D0F">
+        <Grid Margin="20">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- HEADER (always visible) -->
+            <Grid Grid.Row="0" Margin="0,0,0,16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <Button x:Name="BtnBack"
+                        Grid.Column="0"
+                        Content="[ &lt; BACK ]"
+                        Style="{StaticResource TopBarButton}"
+                        Click="BtnBack_Click"/>
+
+                <TextBlock Grid.Column="1"
+                           Text="// BENCHMARK"
+                           Foreground="#8888BB" FontFamily="Consolas" FontSize="14"
+                           VerticalAlignment="Center"
+                           Margin="20,0,0,0"/>
+
+                <TextBlock x:Name="TxtHeaderStatus"
+                           Grid.Column="2"
+                           Text=""
+                           Foreground="#3A3A5C" FontFamily="Consolas" FontSize="11"
+                           VerticalAlignment="Center"/>
+            </Grid>
+
+            <!-- BODY: one of three states visible at a time -->
+            <Grid Grid.Row="1">
+
+                <!-- ====================== SETUP STATE ====================== -->
+                <ScrollViewer x:Name="SetupView"
+                              VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled"
+                              Visibility="Visible">
+                    <StackPanel MaxWidth="540" HorizontalAlignment="Left">
+
+                        <!-- MODE -->
+                        <TextBlock Style="{StaticResource SectionHeader}" Text="// MODE"/>
+                        <Border Background="#1A1A24" BorderBrush="#2A2A3D" BorderThickness="1" CornerRadius="4" Padding="10,8">
+                            <StackPanel>
+                                <RadioButton x:Name="RbMultiQuery"
+                                             Content="multi-query (random pairs by distance bucket)"
+                                             Foreground="#8888BB" FontFamily="Consolas" FontSize="11"
+                                             GroupName="BenchMode" IsChecked="True"
+                                             Margin="0,2"
+                                             Checked="ModeChanged"/>
+                                <RadioButton x:Name="RbSinglePair"
+                                             Content="single pair (use pinned start / end)"
+                                             Foreground="#8888BB" FontFamily="Consolas" FontSize="11"
+                                             GroupName="BenchMode"
+                                             Margin="0,2"
+                                             Checked="ModeChanged"/>
+                                <TextBlock x:Name="TxtSinglePairHint"
+                                           Foreground="#3A3A5C" FontFamily="Consolas" FontSize="10"
+                                           Margin="20,2,0,0"
+                                           Text=""/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- SCENARIO -->
+                        <TextBlock Style="{StaticResource SectionHeader}" Text="// SCENARIO" Margin="0,12,0,6"/>
+                        <Border Background="#1A1A24" BorderBrush="#2A2A3D" BorderThickness="1" CornerRadius="4" Padding="10,8">
+                            <StackPanel>
+                                <ComboBox x:Name="CboScenario"
+                                          Background="#1F1F2E" Foreground="#8888BB"
+                                          BorderBrush="#2A2A3D" FontFamily="Consolas" FontSize="11">
+                                    <ComboBoxItem Content="free_flow" IsSelected="True"/>
+                                    <!-- additional scenarios populated at runtime once
+                                         the multi-CH feature lands -->
+                                </ComboBox>
+                                <TextBlock Foreground="#3A3A5C" FontFamily="Consolas" FontSize="10"
+                                           Margin="0,6,0,0"
+                                           Text="all algorithms in this run use the same scenario; compare scenarios via separate CSV exports"
+                                           TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- ALGORITHMS -->
+                        <TextBlock Style="{StaticResource SectionHeader}" Text="// ALGORITHMS" Margin="0,12,0,6"/>
+                        <Border Background="#1A1A24" BorderBrush="#2A2A3D" BorderThickness="1" CornerRadius="4" Padding="10,8">
+                            <StackPanel>
+                                <CheckBox x:Name="ChkAlgoDijkstra" Content="Dijkstra"  Foreground="#8888BB" FontFamily="Consolas" FontSize="11" Margin="0,2" IsChecked="True"/>
+                                <CheckBox x:Name="ChkAlgoAStar"    Content="A*"        Foreground="#8888BB" FontFamily="Consolas" FontSize="11" Margin="0,2" IsChecked="True"/>
+                                <CheckBox x:Name="ChkAlgoCH"       Content="CH"        Foreground="#8888BB" FontFamily="Consolas" FontSize="11" Margin="0,2" IsChecked="True"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- BUCKETS (only visible in multi-query mode) -->
+                        <StackPanel x:Name="BucketsSection">
+                            <TextBlock Style="{StaticResource SectionHeader}" Text="// DISTANCE BUCKETS" Margin="0,12,0,6"/>
+                            <Border Background="#1A1A24" BorderBrush="#2A2A3D" BorderThickness="1" CornerRadius="4" Padding="10,8">
+                                <StackPanel>
+                                    <CheckBox x:Name="ChkBucketShort"  Content="1-10km"     Foreground="#8888BB" FontFamily="Consolas" FontSize="11" Margin="0,2" IsChecked="True"/>
+                                    <CheckBox x:Name="ChkBucketMedium" Content="10-100km"   Foreground="#8888BB" FontFamily="Consolas" FontSize="11" Margin="0,2" IsChecked="True"/>
+                                    <CheckBox x:Name="ChkBucketLong"   Content="100-1000km" Foreground="#8888BB" FontFamily="Consolas" FontSize="11" Margin="0,2" IsChecked="True"/>
+
+                                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                        <TextBlock Text="pairs per bucket " Foreground="#3A3A5C" FontFamily="Consolas" FontSize="10" VerticalAlignment="Center"/>
+                                        <TextBox x:Name="TxtPairsPerBucket"
+                                                 Text="5" Width="50"
+                                                 Background="#1F1F2E" Foreground="#4488FF"
+                                                 BorderBrush="#2A2A3D" FontFamily="Consolas" FontSize="11"
+                                                 TextAlignment="Center"/>
+                                    </StackPanel>
+
+                                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                        <TextBlock Text="seed " Foreground="#3A3A5C" FontFamily="Consolas" FontSize="10" VerticalAlignment="Center"/>
+                                        <TextBox x:Name="TxtSeed"
+                                                 Text="42" Width="80"
+                                                 Background="#1F1F2E" Foreground="#4488FF"
+                                                 BorderBrush="#2A2A3D" FontFamily="Consolas" FontSize="11"
+                                                 TextAlignment="Center"/>
+                                        <TextBlock Foreground="#3A3A5C" FontFamily="Consolas" FontSize="10"
+                                                   Margin="6,0,0,0"
+                                                   VerticalAlignment="Center"
+                                                   Text="(same seed = same pairs, reproducible)"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+
+                        <!-- RUN MULTIPLICITY -->
+                        <TextBlock Style="{StaticResource SectionHeader}" Text="// RUNS" Margin="0,12,0,6"/>
+                        <Border Background="#1A1A24" BorderBrush="#2A2A3D" BorderThickness="1" CornerRadius="4" Padding="10,8">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,2">
+                                    <TextBlock Text="warmup runs    " Foreground="#3A3A5C" FontFamily="Consolas" FontSize="10" VerticalAlignment="Center"/>
+                                    <TextBox x:Name="TxtWarmup"
+                                             Text="1" Width="50"
+                                             Background="#1F1F2E" Foreground="#4488FF"
+                                             BorderBrush="#2A2A3D" FontFamily="Consolas" FontSize="11"
+                                             TextAlignment="Center"/>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,2">
+                                    <TextBlock Text="measured runs  " Foreground="#3A3A5C" FontFamily="Consolas" FontSize="10" VerticalAlignment="Center"/>
+                                    <TextBox x:Name="TxtMeasured"
+                                             Text="3" Width="50"
+                                             Background="#1F1F2E" Foreground="#4488FF"
+                                             BorderBrush="#2A2A3D" FontFamily="Consolas" FontSize="11"
+                                             TextAlignment="Center"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- RUN -->
+                        <Border Background="#1A1A24" BorderBrush="#2A2A3D" BorderThickness="1" CornerRadius="4" Padding="10,8"
+                                Margin="0,16,0,0">
+                            <StackPanel>
+                                <TextBlock x:Name="TxtEstimate"
+                                           Foreground="#3A3A5C" FontFamily="Consolas" FontSize="10"
+                                           TextWrapping="Wrap"
+                                           Margin="0,0,0,8"
+                                           Text="estimated total runs: 27"/>
+                                <Button x:Name="BtnRunBenchmark"
+                                        Content="[ RUN BENCHMARK ]"
+                                        Style="{StaticResource AccentButton}"
+                                        HorizontalAlignment="Stretch"
+                                        Click="BtnRunBenchmark_Click"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- ====================== RUNNING STATE ====================== -->
+                <Grid x:Name="RunningView" Visibility="Collapsed">
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="500">
+
+                        <TextBlock Text="running benchmark..."
+                                   Foreground="#00FF88" FontFamily="Consolas" FontSize="14"
+                                   HorizontalAlignment="Center" Margin="0,0,0,16"/>
+
+                        <ProgressBar x:Name="ProgressBar"
+                                     Width="400" Height="6"
+                                     Minimum="0" Maximum="100" Value="0"
+                                     Foreground="#00FF88" Background="#1A1A24"
+                                     BorderThickness="0"/>
+
+                        <TextBlock x:Name="TxtProgressPercent"
+                                   Text="0%"
+                                   Foreground="#4488FF" FontFamily="Consolas" FontSize="11"
+                                   HorizontalAlignment="Center" Margin="0,8,0,0"/>
+
+                        <TextBlock x:Name="TxtProgressDetail"
+                                   Text="warming up..."
+                                   Foreground="#8888BB" FontFamily="Consolas" FontSize="11"
+                                   HorizontalAlignment="Center" Margin="0,4,0,0"/>
+
+                        <Button x:Name="BtnCancelBenchmark"
+                                Content="[ CANCEL ]"
+                                Style="{StaticResource TopBarButton}"
+                                HorizontalAlignment="Center"
+                                Margin="0,24,0,0"
+                                Click="BtnCancelBenchmark_Click"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- ====================== RESULTS STATE ====================== -->
+                <ScrollViewer x:Name="ResultsView"
+                              Visibility="Collapsed"
+                              VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Auto">
+                    <StackPanel>
+
+                        <!-- Run-info banner -->
+                        <Border Background="#1A1A24" BorderBrush="#2A2A3D" BorderThickness="1" CornerRadius="4" Padding="12,8"
+                                Margin="0,0,0,12">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock x:Name="TxtRunInfo"
+                                           Grid.Column="0"
+                                           Foreground="#8888BB" FontFamily="Consolas" FontSize="11"
+                                           TextWrapping="Wrap"/>
+                                <TextBlock x:Name="TxtCsvPath"
+                                           Grid.Column="1"
+                                           Foreground="#3A3A5C" FontFamily="Consolas" FontSize="10"
+                                           VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+
+                        <!-- Summary table -->
+                        <TextBlock Style="{StaticResource SectionHeader}" Text="// SUMMARY"/>
+                        <Border Background="#1A1A24" BorderBrush="#2A2A3D" BorderThickness="1" CornerRadius="4" Padding="10,8"
+                                Margin="0,0,0,12">
+                            <Grid>
+                                <DataGrid x:Name="SummaryGrid"
+                                          Background="Transparent" BorderThickness="0"
+                                          HeadersVisibility="Column"
+                                          GridLinesVisibility="None"
+                                          AutoGenerateColumns="False"
+                                          CanUserResizeColumns="True"
+                                          CanUserSortColumns="True"
+                                          IsReadOnly="True"
+                                          RowBackground="Transparent"
+                                          AlternatingRowBackground="#15151E"
+                                          FontFamily="Consolas" FontSize="11"
+                                          Foreground="#8888BB"
+                                          RowHeaderWidth="0"
+                                          ColumnHeaderHeight="22"
+                                          SelectionMode="Single">
+                                    <DataGrid.ColumnHeaderStyle>
+                                        <Style TargetType="DataGridColumnHeader">
+                                            <Setter Property="Background" Value="#1F1F2E"/>
+                                            <Setter Property="Foreground" Value="#3A3A5C"/>
+                                            <Setter Property="FontFamily" Value="Consolas"/>
+                                            <Setter Property="FontSize" Value="10"/>
+                                            <Setter Property="Padding" Value="6,2"/>
+                                            <Setter Property="BorderBrush" Value="#2A2A3D"/>
+                                            <Setter Property="BorderThickness" Value="0,0,1,1"/>
+                                        </Style>
+                                    </DataGrid.ColumnHeaderStyle>
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="algorithm"  Binding="{Binding AlgorithmName}"             Width="100"/>
+                                        <DataGridTextColumn Header="mean (ms)"  Binding="{Binding MeanMs,    StringFormat=F2}" Width="90"/>
+                                        <DataGridTextColumn Header="median"     Binding="{Binding MedianMs,  StringFormat=F2}" Width="90"/>
+                                        <DataGridTextColumn Header="p95"        Binding="{Binding P95Ms,     StringFormat=F2}" Width="80"/>
+                                        <DataGridTextColumn Header="p99"        Binding="{Binding P99Ms,     StringFormat=F2}" Width="80"/>
+                                        <DataGridTextColumn Header="speedup"    Binding="{Binding SpeedupVsBaseline, StringFormat=F1}" Width="80"/>
+                                        <DataGridTextColumn Header="cost disag" Binding="{Binding CostDisagreements}" Width="80"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </Grid>
+                        </Border>
+
+                        <!-- Per-query table -->
+                        <TextBlock Style="{StaticResource SectionHeader}" Text="// PER-QUERY"/>
+                        <Border Background="#1A1A24" BorderBrush="#2A2A3D" BorderThickness="1" CornerRadius="4" Padding="10,8"
+                                Margin="0,0,0,12">
+                            <DataGrid x:Name="PerQueryGrid"
+                                      Background="Transparent" BorderThickness="0"
+                                      HeadersVisibility="Column"
+                                      GridLinesVisibility="None"
+                                      AutoGenerateColumns="False"
+                                      CanUserResizeColumns="True"
+                                      CanUserSortColumns="True"
+                                      IsReadOnly="True"
+                                      RowBackground="Transparent"
+                                      AlternatingRowBackground="#15151E"
+                                      FontFamily="Consolas" FontSize="11"
+                                      Foreground="#8888BB"
+                                      RowHeaderWidth="0"
+                                      ColumnHeaderHeight="22"
+                                      MaxHeight="380"
+                                      SelectionMode="Single">
+                                <DataGrid.ColumnHeaderStyle>
+                                    <Style TargetType="DataGridColumnHeader">
+                                        <Setter Property="Background" Value="#1F1F2E"/>
+                                        <Setter Property="Foreground" Value="#3A3A5C"/>
+                                        <Setter Property="FontFamily" Value="Consolas"/>
+                                        <Setter Property="FontSize" Value="10"/>
+                                        <Setter Property="Padding" Value="6,2"/>
+                                        <Setter Property="BorderBrush" Value="#2A2A3D"/>
+                                        <Setter Property="BorderThickness" Value="0,0,1,1"/>
+                                    </Style>
+                                </DataGrid.ColumnHeaderStyle>
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="#"           Binding="{Binding QueryId}"                          Width="40"/>
+                                    <DataGridTextColumn Header="bucket"      Binding="{Binding Bucket}"                           Width="90"/>
+                                    <DataGridTextColumn Header="algorithm"   Binding="{Binding AlgorithmName}"                    Width="100"/>
+                                    <DataGridTextColumn Header="dist (km)"   Binding="{Binding PathDistanceKm, StringFormat=F2}"  Width="80"/>
+                                    <DataGridTextColumn Header="cost"        Binding="{Binding TotalCost,      StringFormat=F1}"  Width="80"/>
+                                    <DataGridTextColumn Header="elapsed ms"  Binding="{Binding MedianElapsedMs,StringFormat=F2}"  Width="90"/>
+                                    <DataGridTextColumn Header="nodes"       Binding="{Binding NodesVisited}"                     Width="80"/>
+                                    <DataGridTextColumn Header="agrees"      Binding="{Binding CostAgrees}"                       Width="60"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Border>
+
+                        <!-- Algorithms reference -->
+                        <TextBlock Style="{StaticResource SectionHeader}" Text="// ALGORITHMS REFERENCE"/>
+                        <Border Background="#1A1A24" BorderBrush="#2A2A3D" BorderThickness="1" CornerRadius="4" Padding="10,8"
+                                Margin="0,0,0,12">
+                            <StackPanel x:Name="AlgoRefPanel">
+                                <!-- Filled in code-behind so we can re-use the algorithm list -->
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Footer: agreement note and run-another button -->
+                        <Border Background="#1A1A24" BorderBrush="#2A2A3D" BorderThickness="1" CornerRadius="4" Padding="10,8"
+                                Margin="0,0,0,16">
+                            <StackPanel>
+                                <TextBlock x:Name="TxtAgreement"
+                                           Text=""
+                                           FontFamily="Consolas" FontSize="11"
+                                           Margin="0,0,0,8"/>
+                                <Button x:Name="BtnRunAgain"
+                                        Content="[ RUN ANOTHER ]"
+                                        Style="{StaticResource TopBarButton}"
+                                        HorizontalAlignment="Left"
+                                        Click="BtnRunAgain_Click"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+
+            </Grid>
+        </Grid>
+    </Border>
+</UserControl>

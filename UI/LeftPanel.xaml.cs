@@ -9,6 +9,14 @@ namespace adaptive_offline_gps.UI
     {
         public LeftPanel() => InitializeComponent();
 
+        public event Action? BenchmarkRequested;
+
+        public void SetBenchmarkEnabled(bool enabled)
+            => BtnBenchmark.IsEnabled = enabled;
+
+        private void BtnBenchmark_Click(object sender, RoutedEventArgs e)
+            => BenchmarkRequested?.Invoke();
+
         //  Public API called by MainWindow
         public void SetFilePath(string filePath)
         {
