@@ -74,16 +74,13 @@
                         <Border Background="#1A1A24" BorderBrush="#2A2A3D" BorderThickness="1" CornerRadius="4" Padding="10,8">
                             <StackPanel>
                                 <ComboBox x:Name="CboScenario"
-                                          Background="#1F1F2E" Foreground="#8888BB"
-                                          BorderBrush="#2A2A3D" FontFamily="Consolas" FontSize="11">
-                                    <ComboBoxItem Content="free_flow" IsSelected="True"/>
-                                    <!-- additional scenarios populated at runtime once
-                                         the multi-CH feature lands -->
-                                </ComboBox>
+                                            Background="#1F1F2E" Foreground="#8888BB"
+                                            BorderBrush="#2A2A3D" FontFamily="Consolas" FontSize="11"/>
+
                                 <TextBlock Foreground="#3A3A5C" FontFamily="Consolas" FontSize="10"
-                                           Margin="0,6,0,0"
-                                           Text="all algorithms in this run use the same scenario; compare scenarios via separate CSV exports"
-                                           TextWrapping="Wrap"/>
+                                            Margin="0,6,0,0"
+                                            Text="all algorithms in this run use the same scenario; compare scenarios via separate CSV exports"
+                                            TextWrapping="Wrap"/>
                             </StackPanel>
                         </Border>
 

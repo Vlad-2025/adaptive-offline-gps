@@ -8,6 +8,14 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
         public float[] NodeLat;
         public float[] NodeLon;
 
+        /// <summary>
+        /// OSM node ID for each junction, indexed by compact junction index.
+        /// Needed to map scenario CSV rows - keyed by (from_osm_id, to_osm_id) -
+        /// back to CSR edge indices. Populated by RoadGraphBuilder, persisted
+        /// by RoadGraphSerializer v3.
+        /// </summary>
+        public long[] NodeOsmId;
+
         //  CSR adjacency (junctions only)
         public int[] EdgeHead;      //  first edge index for that node
         public int[] EdgeTarget;    //  target node index
@@ -46,6 +54,26 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
             result[pillarCount + 1] = (NodeLat[toNode], NodeLon[toNode]);
 
             return result;
+        }
+
+        /// <summary>
+        /// Returns the source junction index of an edge by binary-searching
+        /// the CSR EdgeHead array. O(log NodeCount).
+        /// </summary>
+        public int GetEdgeSource(int edgeIdx)
+        {
+            //  EdgeHead is monotonically non-decreasing with a sentinel at [NodeCount].
+            //  Find the node i such that EdgeHead[i] <= edgeIdx < EdgeHead[i+1].
+            int lo = 0, hi = NodeCount - 1;
+            while (lo < hi)
+            {
+                int mid = (lo + hi + 1) >> 1;
+                if (EdgeHead[mid] <= edgeIdx)
+                    lo = mid;
+                else
+                    hi = mid - 1;
+            }
+            return lo;
         }
     }
 }

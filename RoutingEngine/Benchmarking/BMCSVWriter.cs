@@ -7,34 +7,36 @@ using System.Text;
 namespace adaptive_offline_gps.RoutingEngine.Benchmarking
 {
     /// <summary>
-    /// Writes a BenchmarkReport to disk as CSV with a comment-prefixed metadata
-    /// header. Long format (one row per algorithm-query pair) for pandas/R/Excel
-    /// pivot friendliness.
+    /// Writes a BenchmarkReport to disk as CSV with a comment-prefixed metadata header
+    /// Long format (one row per algorithm-query pair)
     /// </summary>
     public static class BenchmarkCsvWriter
     {
         //  Use invariant culture so decimal separator is "." even on locales
-        //  that default to "," (your debug output showed Romanian formatting).
-        //  CSV readers expect "." for floats.
+        //  that default to ","
+        //  CSV readers expect "." for floats
         private static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
 
         /// <summary>
-        /// Write report to `path`. Overwrites if it exists.
+        /// Write report to `path`
+        /// Overwrites if it exists
         /// </summary>
         public static void Write(BenchmarkReport report, string path)
         {
             using var w = new StreamWriter(path, append: false, Encoding.UTF8);
+
             WriteMetadata(w, report);
             WriteRows(w, report);
         }
 
         /// <summary>
-        /// Generate a standardized filename for a report. Caller picks the directory.
+        /// Generate a standardized filename for a report
+        /// Caller picks the directory
         /// Format: bench_{scenario}_{yyyy-MM-dd_HH-mm}.csv
         /// </summary>
         public static string DefaultFileName(BenchmarkReport report)
         {
-            //  Sanitize scenario name - no path separators, no spaces
+            //  Sanitize scenario name; no path separators, no spaces
             string scen = report.Config.ScenarioName
                 .Replace(' ', '_')
                 .Replace('/', '_')

@@ -1,3 +1,6 @@
+using adaptive_offline_gps.RoutingEngine.Benchmarking;
+using adaptive_offline_gps.RoutingEngine.GraphAlgorithms;
+using adaptive_offline_gps.RoutingEngine.RoadGraphBuilding;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -9,8 +12,6 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
 using System.Windows.Media;
-using adaptive_offline_gps.RoutingEngine.Benchmarking;
-using adaptive_offline_gps.RoutingEngine.RoadGraphBuilding;
 
 namespace adaptive_offline_gps.UI
 {
@@ -37,6 +38,7 @@ namespace adaptive_offline_gps.UI
         private RoadGraph? _graph;
         private CHGraph? _chGraph;
         private string? _graphFile;
+        private string? _baseRgphPath;
 
         //  Single-pair context (only valid when both >= 0)
         private int _pinStart = -1;
@@ -52,11 +54,49 @@ namespace adaptive_offline_gps.UI
 
         //  Public API ===============================
 
-        public void Initialize(RoadGraph graph, CHGraph chGraph, string graphFile)
+        public void Initialize(RoadGraph graph, CHGraph chGraph, string graphFile, string baseRgphPath)
         {
             _graph = graph;
             _chGraph = chGraph;
             _graphFile = graphFile;
+            _baseRgphPath = baseRgphPath;
+            RefreshScenarios();
+        }
+
+        /// <summary>
+        /// Repopulate the scenario dropdown. Called by MainWindow when scenarios
+        /// change (after preprocessing or when the base graph reloads).
+        /// </summary>
+        public void RefreshScenarios()
+        {
+            if (_baseRgphPath == null) return;
+
+            string? preserve = (CboScenario.SelectedItem as ComboBoxItem)?.Content?.ToString();
+
+            var scenariosDir = ScenarioPipeline.ScenariosDirFor(_baseRgphPath);
+            var available = ScenarioPipeline.ListAvailableScenarios(scenariosDir);
+
+            CboScenario.Items.Clear();
+            //  "free_flow" is the baseline (no scenario). Keep the existing label for
+            //  CSV consistency with prior benchmark exports.
+            var freeFlow = new ComboBoxItem { Content = "free_flow", IsSelected = true };
+            CboScenario.Items.Add(freeFlow);
+
+            foreach (var name in available)
+                CboScenario.Items.Add(new ComboBoxItem { Content = name });
+
+            //  Try to preserve previous selection
+            if (preserve != null)
+            {
+                foreach (var raw in CboScenario.Items)
+                {
+                    if (raw is ComboBoxItem ci && (ci.Content as string) == preserve)
+                    {
+                        ci.IsSelected = true;
+                        break;
+                    }
+                }
+            }
         }
 
         //  Called by MainWindow each time the user navigates to the benchmark view,
@@ -193,11 +233,53 @@ namespace adaptive_offline_gps.UI
                     Dispatcher.Invoke(() => UpdateProgress(p));
                 };
 
+                //  Resolve weights + CH override based on the selected scenario.
+                //  "free_flow" -> base CH, base weights.
+                //  Real scenario -> scenario CH (if available), ScenarioWeightProvider for non-CH.
+                IEdgeWeightProvider weights = RoutingEngine.GraphAlgorithms.BaseWeightProvider.Instance;
+                CHGraph? chOverride = null;
+
+                if (cfg.ScenarioName != "free_flow")
+                {
+                    var scenariosDir = ScenarioPipeline.ScenariosDirFor(_baseRgphPath!);
+                    var CSVPath = ScenarioPipeline.CsvPathFor(scenariosDir, cfg.ScenarioName);
+
+                    if (!File.Exists(CSVPath))
+                    {
+                        MessageBox.Show($"scenario CSV missing: {CSVPath}", "error",
+                            MessageBoxButton.OK, MessageBoxImage.Error);
+                        ShowSetup();
+                        return;
+                    }
+
+                    weights = ScenarioWeightProvider.FromCsv(_graph!, CSVPath);
+
+                    //  CH override: load scenario .chgr if CH is one of the algorithms.
+                    //  If CH is requested but its .chgr is missing, refuse to run rather
+                    //  than silently falling back to base CH (which would be wrong weights).
+                    if (cfg.AlgorithmNames.Contains("CH"))
+                    {
+                        chOverride = ScenarioPipeline.LoadScenarioCh(_graph!, _baseRgphPath!, cfg.ScenarioName);
+                        if (chOverride == null)
+                        {
+                            MessageBox.Show(
+                                $"scenario '{cfg.ScenarioName}' has no preprocessed CH (.chgr). " +
+                                $"open SCENARIOS in the main panel and preprocess it first, " +
+                                $"or unselect CH from the algorithms list.",
+                                "missing CH",
+                                MessageBoxButton.OK, MessageBoxImage.Warning);
+                            ShowSetup();
+                            return;
+                        }
+                    }
+                }
+
                 var report = await Task.Run(() => runner.RunAsync(
                     cfg,
-                    RoutingEngine.GraphAlgorithms.BaseWeightProvider.Instance,
+                    weights,
                     onProgress,
-                    _cts.Token));
+                    _cts.Token,
+                    chOverride));
 
                 _lastReport = report;
 

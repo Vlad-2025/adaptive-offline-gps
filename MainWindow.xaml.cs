@@ -2,6 +2,7 @@
 using adaptive_offline_gps.EngineMap;
 using adaptive_offline_gps.RoutingEngine.GraphAlgorithms;
 using adaptive_offline_gps.RoutingEngine.GraphAlgorithms.Algorithms;
+using adaptive_offline_gps.RoutingEngine.RoadGraphBuilding;
 using adaptive_offline_gps.UI;
 using BruTile;
 using Mapsui;
@@ -60,6 +61,9 @@ namespace adaptive_offline_gps
 
             LeftPanel.BenchmarkRequested     += OnBenchmarkRequested;
             BenchmarkPanelView.BackRequested += OnBenchmarkBackRequested;
+
+            LeftPanel.ScenariosRequested += OnScenariosRequested;
+            ScenarioPanelView.BackRequested += OnScenarioBackRequested;
 
             UpdateMapSquare();
         }
@@ -143,14 +147,40 @@ namespace adaptive_offline_gps
 
             //  Build weight provider from active conditions
             IEdgeWeightProvider weights;
-            if (LeftPanel.RushHour || LeftPanel.Snow || LeftPanel.Rain)
+            CHGraph chForRun = _mapEngine.ChGraph;
+            string? scenarioName = LeftPanel.SelectedScenarioName;
+
+            if (scenarioName != null)
             {
-                weights = new SyntheticWeightProvider
+                //  Real scenario: load both the weights and the CH from disk
+
+                //  The .chgr existence is enforced when populating the dropdown (only ready scenarios appear), so this should always succeed,
+                //  but guard defensively in case the file was deleted between refresh and run
+                string baseRgphPath = Path.ChangeExtension(_osmFilePath!, ".rgph");
+                var scenariosDir = ScenarioPipeline.ScenariosDirFor(baseRgphPath);
+                var csvPath = ScenarioPipeline.CsvPathFor(scenariosDir, scenarioName);
+
+                if (!File.Exists(csvPath))
                 {
-                    RushHour = LeftPanel.RushHour,
-                    Snow = LeftPanel.Snow,
-                    Rain = LeftPanel.Rain,
-                };
+                    LeftPanel.Log($"scenario CSV missing: {csvPath}", DebugConsole.LogLevel.Error);
+                    LeftPanel.SetRunning(false);
+                    return;
+                }
+
+                weights = ScenarioWeightProvider.FromCsv(_mapEngine.Graph, csvPath);
+
+                var loaded = ScenarioPipeline.LoadScenarioCh(_mapEngine.Graph, baseRgphPath, scenarioName);
+
+                if (loaded == null)
+                {
+                    LeftPanel.Log($"scenario '{scenarioName}' has no preprocessed CH - preprocess it first", DebugConsole.LogLevel.Warning);
+                    LeftPanel.SetRunning(false);
+
+                    return;
+                }
+                chForRun = loaded;
+
+                LeftPanel.Log($"scenario: {scenarioName}", DebugConsole.LogLevel.Info);
             }
             else
             {
@@ -175,7 +205,7 @@ namespace adaptive_offline_gps
 
                     LeftPanel.Log("running CH (alt)...");
 
-                    var ch = new CHAlgorithmWrapper(_mapEngine.ChGraph);
+                    var ch = new CHAlgorithmWrapper(chForRun);
                     const int maxAlternatives = 2;
 
                     var results = await ch.FindAlternativesAsync(
@@ -238,7 +268,7 @@ namespace adaptive_offline_gps
                 {
                     "Dijkstra" => new DijkstraAlgorithm(),
                     "A*" => new AStarAlgorithm(),
-                    "CH" => new CHAlgorithmWrapper(_mapEngine.ChGraph),
+                    "CH" => new CHAlgorithmWrapper(chForRun),
                     _ => new DijkstraAlgorithm(),
                 };
 
@@ -246,7 +276,7 @@ namespace adaptive_offline_gps
                 {
                     CHDebugVerifier.Verify(
                         _mapEngine.Graph,
-                        _mapEngine.ChGraph,
+                        chForRun,
                         _routingController.StartNodeIndex,
                         _routingController.EndNodeIndex);
                 }
@@ -295,6 +325,46 @@ namespace adaptive_offline_gps
             }
         }
 
+        private void OnScenariosRequested()
+        {
+            if (_mapEngine == null)
+            {
+                LeftPanel.Log("load a map first", DebugConsole.LogLevel.Warning);
+                return;
+            }
+            //  Same panel-swap as the benchmark panel
+            MapContainer.Visibility         = Visibility.Collapsed;
+            BenchmarkPanelView.Visibility   = Visibility.Collapsed;
+            ScenarioPanelView.Visibility    = Visibility.Visible;
+
+            ScenarioPanelView.Refresh();
+        }
+
+        private void OnScenarioBackRequested()
+        {
+            ScenarioPanelView.Visibility = Visibility.Collapsed;
+            MapContainer.Visibility = Visibility.Visible;
+            LeftPanel.Log("returned from scenarios", DebugConsole.LogLevel.Info);
+        }
+
+        private void RefreshScenarioDropdowns(string baseRgphPath)
+        {
+            //  Only scenarios that have a ready .chgr are runtime-selectable in LeftPanel
+            //  -> picking one that's not preprocessed would force a fallback or an error mid-run
+
+            //  The benchmark panel includes all CSV-present scenarios (free_flow + each)
+            //  because its own logic warns if .chgr is missing for the selected algorithms
+
+            var scenariosDir    = ScenarioPipeline.ScenariosDirFor(baseRgphPath);
+            var available       = ScenarioPipeline.ListAvailableScenarios(scenariosDir);
+            var statuses        = ScenarioPipeline.GetScenarioStatuses(baseRgphPath, scenariosDir, available);
+
+            var ready = available.Where(n => statuses.TryGetValue(n, out var s)
+                                              && s == ScenarioStatus.Ready).ToList();
+
+            LeftPanel.RefreshScenarios(ready);
+            BenchmarkPanelView.RefreshScenarios();
+        }
         private void OnCancelRequested()
         {
             _routingCts?.Cancel();
@@ -408,7 +478,13 @@ namespace adaptive_offline_gps
                     RouteInfoPanel
                     );
 
-                BenchmarkPanelView.Initialize(_mapEngine.Graph, _mapEngine.ChGraph, filePath);
+                string baseRgphPath = Path.ChangeExtension(filePath, ".rgph");
+
+                BenchmarkPanelView.Initialize(_mapEngine.Graph, _mapEngine.ChGraph, filePath, baseRgphPath);
+                ScenarioPanelView.Initialize(_mapEngine.Graph, baseRgphPath);
+
+                RefreshScenarioDropdowns(baseRgphPath);
+                LeftPanel.SetScenariosButtonEnabled(true);
 
                 _routingController.RouteReadyToRun += (startIdx, endIdx) =>
                 {

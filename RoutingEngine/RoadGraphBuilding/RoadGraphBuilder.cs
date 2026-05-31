@@ -199,7 +199,7 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
             AllNodeLon = allLon.ToArray();
             AllNodeNearestJunction = allNodeNearestJunc;
 
-            return CompressToCSR(junctionCoords, adjList);
+            return CompressToCSR(junctionCoords, adjList, junctionIndex);
         }
 
         private void EmitSegment(
@@ -278,8 +278,9 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
         }
 
         private RoadGraph CompressToCSR(
-            List<(float lat, float lon)> coords,
-            List<(int to, float weight, float[] geomLat, float[] geomLon)>[] adj)
+        List<(float lat, float lon)> coords,
+        List<(int to, float weight, float[] geomLat, float[] geomLon)>[] adj,
+        Dictionary<long, int> junctionIndex)
         {
             int n = coords.Count;
             int totalEdges = adj.Sum(x => x.Count);
@@ -288,6 +289,7 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
             {
                 NodeLat = new float[n],
                 NodeLon = new float[n],
+                NodeOsmId = new long[n],
                 EdgeHead = new int[n + 1],
                 EdgeTarget = new int[totalEdges],
                 EdgeWeight = new float[totalEdges],
@@ -300,6 +302,11 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
                 g.NodeLat[i] = coords[i].lat;
                 g.NodeLon[i] = coords[i].lon;
             }
+
+            //  Invert junctionIndex (osmId -> compactIndex) into NodeOsmId (compactIndex -> osmId)
+            //  Every compact index 0..n-1 is covered because junctionCoords and junctionIndex are filled in lockstep in Build()'s Pass 2
+            foreach (var (osmId, compactIdx) in junctionIndex)
+                g.NodeOsmId[compactIdx] = osmId;
 
             int cursor = 0;
 

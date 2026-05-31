@@ -50,14 +50,26 @@
                     </StackPanel>
                 </Border>
 
-                <!-- CONDITIONS -->
-                <TextBlock Style="{StaticResource SectionHeader}" Text="// CONDITIONS"/>
+                <!-- SCENARIO -->
+                <TextBlock Style="{StaticResource SectionHeader}" Text="// SCENARIO" Margin="0,12,0,6"/>
                 <Border Background="#1A1A24" BorderBrush="#2A2A3D" BorderThickness="1" CornerRadius="4" Padding="10,8">
                     <StackPanel>
-                        <CheckBox x:Name="ChkRushHour"  Content="Rush hour"  Foreground="#8888BB" FontFamily="Consolas" FontSize="11" Margin="0,2"/>
-                        <CheckBox x:Name="ChkRoadWorks" Content="Road works" Foreground="#8888BB" FontFamily="Consolas" FontSize="11" Margin="0,2"/>
-                        <CheckBox x:Name="ChkSnow"      Content="Snow"       Foreground="#8888BB" FontFamily="Consolas" FontSize="11" Margin="0,2"/>
-                        <CheckBox x:Name="ChkRain"      Content="Rain"       Foreground="#8888BB" FontFamily="Consolas" FontSize="11" Margin="0,2"/>
+                        <ComboBox x:Name="CboScenario"
+                            Background="#1F1F2E" Foreground="#8888BB"
+                            BorderBrush="#2A2A3D" FontFamily="Consolas" FontSize="11"
+                            SelectionChanged="CboScenario_SelectionChanged"
+                            Margin="0,0,0,6"/>
+                        <TextBlock x:Name="TxtScenarioHint"
+                            Foreground="#3A3A5C" FontFamily="Consolas" FontSize="10"
+                            TextWrapping="Wrap"
+                            Margin="0,0,0,8"
+                            Text="(default) uses synthetic checkboxes for Dijkstra/A* and base CH for CH."/>
+                        <Button x:Name="BtnScenarios"
+                            Content="[ MANAGE / PREPROCESS ]"
+                            Style="{StaticResource TopBarButton}"
+                            HorizontalAlignment="Stretch"
+                            IsEnabled="False"
+                            Click="BtnScenarios_Click"/>
                     </StackPanel>
                 </Border>
 

@@ -3,8 +3,9 @@
 namespace adaptive_offline_gps.RoutingEngine.Benchmarking
 {
     /// <summary>
-    /// A straight-line (haversine) distance range used to bucket queries.
-    /// MinKm inclusive, MaxKm exclusive. Labels are used for output / CSV.
+    /// A straight-line (haversine) distance range used to bucket queries
+    /// MinKm inclusive, MaxKm exclusive
+    /// Labels are used for output / CSV
     /// </summary>
     public record DistanceBucket(string Label, double MinKm, double MaxKm)
     {
@@ -20,7 +21,7 @@ namespace adaptive_offline_gps.RoutingEngine.Benchmarking
     /// 
     /// Straight-line distance is computed once at generation time and stored
     /// 
-    /// It's the x-axis for performance plots.
+    /// It's the x-axis for performance plots
     /// </summary>
     public record QueryPair(
         int Id,

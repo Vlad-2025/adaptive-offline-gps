@@ -83,12 +83,16 @@
                 </Border>
 
                 <ui:DownloadPanel x:Name="DownloadPanel"
-                                  Grid.Row="0"
-                                  Visibility="Visible"/>
+                                    Grid.Row="0"
+                                    Visibility="Visible"/>
 
                 <ui:BenchmarkPanelView x:Name="BenchmarkPanelView"
-                                   Grid.Row="0"
-                                   Visibility="Collapsed"/>
+                                    Grid.Row="0"
+                                    Visibility="Collapsed"/>
+
+                <ui:ScenarioPanelView x:Name="ScenarioPanelView"
+                                    Grid.Row="0"
+                                    Visibility="Collapsed"/>
 
                 <GridSplitter Grid.Row="1" Height="4"
                               HorizontalAlignment="Stretch"

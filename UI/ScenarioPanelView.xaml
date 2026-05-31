@@ -1,0 +1,206 @@
+<UserControl x:Class="adaptive_offline_gps.UI.ScenarioPanelView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Border Background="#0D0D0F">
+        <Grid Margin="20">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- HEADER -->
+            <Grid Grid.Row="0" Margin="0,0,0,16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <Button x:Name="BtnBack"
+                        Grid.Column="0"
+                        Content="[ &lt; BACK ]"
+                        Style="{StaticResource TopBarButton}"
+                        Click="BtnBack_Click"/>
+
+                <TextBlock Grid.Column="1"
+                           Text="// SCENARIOS"
+                           Foreground="#8888BB" FontFamily="Consolas" FontSize="14"
+                           VerticalAlignment="Center"
+                           Margin="20,0,0,0"/>
+
+                <TextBlock x:Name="TxtHeaderStatus"
+                           Grid.Column="2"
+                           Text=""
+                           Foreground="#3A3A5C" FontFamily="Consolas" FontSize="11"
+                           VerticalAlignment="Center"/>
+            </Grid>
+
+            <!-- BODY -->
+            <Grid Grid.Row="1">
+
+                <!-- ====================== SELECTION STATE ====================== -->
+                <ScrollViewer x:Name="SelectionView"
+                              VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled"
+                              Visibility="Visible">
+                    <StackPanel MaxWidth="540" HorizontalAlignment="Left">
+
+                        <!-- Info box -->
+                        <Border Background="#1A1A24" BorderBrush="#2A2A3D" BorderThickness="1" CornerRadius="4" Padding="12,10"
+                                Margin="0,0,0,12">
+                            <StackPanel>
+                                <TextBlock Foreground="#8888BB" FontFamily="Consolas" FontSize="11"
+                                           TextWrapping="Wrap"
+                                           Text="each scenario is a coherent set of per-edge multipliers (winter, rush hour, ...). preprocessing builds a dedicated contraction hierarchy for each - takes ~20 minutes per scenario but only needs to run once."/>
+                                <TextBlock x:Name="TxtScenariosDir"
+                                           Foreground="#3A3A5C" FontFamily="Consolas" FontSize="10"
+                                           Margin="0,8,0,0"
+                                           TextWrapping="Wrap"
+                                           Text=""/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Scenarios list -->
+                        <TextBlock Style="{StaticResource SectionHeader}" Text="// AVAILABLE SCENARIOS"/>
+                        <Border Background="#1A1A24" BorderBrush="#2A2A3D" BorderThickness="1" CornerRadius="4" Padding="10,8"
+                                Margin="0,0,0,12">
+                            <StackPanel>
+                                <TextBlock x:Name="TxtEmptyHint"
+                                           Foreground="#3A3A5C" FontFamily="Consolas" FontSize="10"
+                                           TextWrapping="Wrap"
+                                           Visibility="Collapsed"
+                                           Text="no scenario CSVs found. generate them with the Python tool first, then place the scenarios_&lt;basename&gt; folder next to your .rgph file."/>
+
+                                <ItemsControl x:Name="ScenariosList">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid Margin="0,3">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+
+                                                <CheckBox Grid.Column="0"
+                                                          IsChecked="{Binding IsSelected, Mode=TwoWay}"
+                                                          VerticalAlignment="Center"/>
+
+                                                <TextBlock Grid.Column="1"
+                                                           Text="{Binding Name}"
+                                                           Foreground="#8888BB"
+                                                           FontFamily="Consolas" FontSize="11"
+                                                           VerticalAlignment="Center"
+                                                           Margin="8,0,0,0"/>
+
+                                                <TextBlock Grid.Column="2"
+                                                           Text="{Binding StatusText}"
+                                                           Foreground="{Binding StatusBrush}"
+                                                           FontFamily="Consolas" FontSize="10"
+                                                           VerticalAlignment="Center"/>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Run -->
+                        <Border Background="#1A1A24" BorderBrush="#2A2A3D" BorderThickness="1" CornerRadius="4" Padding="10,8"
+                                Margin="0,8,0,0">
+                            <StackPanel>
+                                <TextBlock x:Name="TxtEstimate"
+                                           Foreground="#3A3A5C" FontFamily="Consolas" FontSize="10"
+                                           TextWrapping="Wrap"
+                                           Margin="0,0,0,8"
+                                           Text="select scenarios to preprocess"/>
+                                <Button x:Name="BtnPreprocess"
+                                        Content="[ PREPROCESS SELECTED ]"
+                                        Style="{StaticResource AccentButton}"
+                                        IsEnabled="False"
+                                        HorizontalAlignment="Stretch"
+                                        Click="BtnPreprocess_Click"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- ====================== RUNNING STATE ====================== -->
+                <Grid x:Name="RunningView" Visibility="Collapsed">
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="500">
+
+                        <TextBlock x:Name="TxtRunningHeader"
+                                   Text="preprocessing scenarios..."
+                                   Foreground="#00FF88" FontFamily="Consolas" FontSize="14"
+                                   HorizontalAlignment="Center" Margin="0,0,0,4"/>
+
+                        <TextBlock x:Name="TxtScenarioCounter"
+                                   Text=""
+                                   Foreground="#4488FF" FontFamily="Consolas" FontSize="12"
+                                   HorizontalAlignment="Center" Margin="0,0,0,16"/>
+
+                        <ProgressBar x:Name="ProgressBar"
+                                     Width="400" Height="6"
+                                     Minimum="0" Maximum="100" Value="0"
+                                     Foreground="#00FF88" Background="#1A1A24"
+                                     BorderThickness="0"/>
+
+                        <TextBlock x:Name="TxtProgressPercent"
+                                   Text="0%"
+                                   Foreground="#4488FF" FontFamily="Consolas" FontSize="11"
+                                   HorizontalAlignment="Center" Margin="0,8,0,0"/>
+
+                        <TextBlock x:Name="TxtStage"
+                                   Text="starting..."
+                                   Foreground="#8888BB" FontFamily="Consolas" FontSize="11"
+                                   HorizontalAlignment="Center" Margin="0,4,0,0"/>
+
+                        <TextBlock x:Name="TxtElapsed"
+                                   Text=""
+                                   Foreground="#3A3A5C" FontFamily="Consolas" FontSize="10"
+                                   HorizontalAlignment="Center" Margin="0,8,0,0"/>
+
+                        <Button x:Name="BtnCancel"
+                                Content="[ CANCEL ]"
+                                Style="{StaticResource TopBarButton}"
+                                HorizontalAlignment="Center"
+                                Margin="0,24,0,0"
+                                Click="BtnCancel_Click"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- ====================== DONE STATE ====================== -->
+                <ScrollViewer x:Name="DoneView"
+                              Visibility="Collapsed"
+                              VerticalScrollBarVisibility="Auto">
+                    <StackPanel MaxWidth="540" HorizontalAlignment="Left">
+
+                        <Border Background="#1A1A24" BorderBrush="#2A2A3D" BorderThickness="1" CornerRadius="4" Padding="12,10"
+                                Margin="0,0,0,12">
+                            <StackPanel>
+                                <TextBlock x:Name="TxtDoneHeader"
+                                           Foreground="#00FF88" FontFamily="Consolas" FontSize="13"
+                                           Margin="0,0,0,4"/>
+                                <TextBlock x:Name="TxtDoneSummary"
+                                           Foreground="#8888BB" FontFamily="Consolas" FontSize="11"
+                                           TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Background="#1A1A24" BorderBrush="#2A2A3D" BorderThickness="1" CornerRadius="4" Padding="10,8">
+                            <StackPanel x:Name="DoneList"/>
+                        </Border>
+
+                        <Button x:Name="BtnDoneBack"
+                                Content="[ RETURN TO SELECTION ]"
+                                Style="{StaticResource TopBarButton}"
+                                HorizontalAlignment="Left"
+                                Margin="0,16,0,0"
+                                Click="BtnDoneBack_Click"/>
+                    </StackPanel>
+                </ScrollViewer>
+
+            </Grid>
+        </Grid>
+    </Border>
+</UserControl>

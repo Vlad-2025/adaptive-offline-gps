@@ -1,6 +1,5 @@
 ﻿using adaptive_offline_gps.Data;
 using adaptive_offline_gps.RoutingEngine;
-using adaptive_offline_gps.RoutingEngine.GraphAlgorithms;
 using adaptive_offline_gps.RoutingEngine.RoadGraphBuilding;
 using BruTile.Predefined;
 using BruTile.Web;

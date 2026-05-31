@@ -6,9 +6,9 @@
         public float Weight;
 
         /// <summary>
-        /// -1 = original edge (no shortcut).
-        /// Otherwise, the node that was contracted to create this shortcut.
-        /// Used to recursively unpack the path back to real road geometry.
+        /// -1 = original edge (no shortcut)
+        /// Otherwise, the node that was contracted to create this shortcut
+        /// Used to recursively unpack the path back to real road geometry
         /// </summary>
         public int ShortcutMid;
 

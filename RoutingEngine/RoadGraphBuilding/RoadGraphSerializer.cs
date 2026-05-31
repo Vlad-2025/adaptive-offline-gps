@@ -6,7 +6,7 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
     public class RoadGraphSerializer
     {
         private const uint Magic = 0x52475048; // RGPH
-        private const int Version = 2;         // v2: includes edge geometry
+        private const int Version = 3;         // v3: adds NodeOsmId[] (v2: edge geometry)
 
         public static void Save(RoadGraph g, string path)
         {
@@ -20,6 +20,9 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
             //  Node coordinates
             WriteFloatArray(bw, g.NodeLat);
             WriteFloatArray(bw, g.NodeLon);
+
+            //  Node OSM IDs (v3) - needed for scenario CSV edge matching
+            WriteLongArray(bw, g.NodeOsmId);
 
             //  CSR structure
             WriteIntArray(bw, g.EdgeHead);
@@ -62,6 +65,7 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
             {
                 NodeLat = ReadFloatArray(br, nodeCount),
                 NodeLon = ReadFloatArray(br, nodeCount),
+                NodeOsmId = ReadLongArray(br, nodeCount),
                 EdgeHead = ReadIntArray(br, nodeCount + 1),
                 EdgeTarget = ReadIntArray(br, edgeCount),
                 EdgeWeight = ReadFloatArray(br, edgeCount),
@@ -102,7 +106,9 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
                 }
                 catch
                 {
-                    //  Version mismatch or corrupt - rebuild
+                    //  Version mismatch (e.g. old v2 cache) or corrupt - rebuild.
+                    //  A v2 .rgph has no NodeOsmId and will fail the version check
+                    //  above, triggering a one-time rebuild. That is intentional.
                 }
             }
             g = null;
@@ -123,6 +129,13 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
             bw.Write(bytes);
         }
 
+        private static void WriteLongArray(BinaryWriter bw, long[] arr)
+        {
+            var bytes = new byte[arr.Length * 8];
+            Buffer.BlockCopy(arr, 0, bytes, 0, bytes.Length);
+            bw.Write(bytes);
+        }
+
         private static float[] ReadFloatArray(BinaryReader br, int count)
         {
             var bytes = br.ReadBytes(count * 4);
@@ -135,6 +148,14 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
         {
             var bytes = br.ReadBytes(count * 4);
             var arr = new int[count];
+            Buffer.BlockCopy(bytes, 0, arr, 0, bytes.Length);
+            return arr;
+        }
+
+        private static long[] ReadLongArray(BinaryReader br, int count)
+        {
+            var bytes = br.ReadBytes(count * 8);
+            var arr = new long[count];
             Buffer.BlockCopy(bytes, 0, arr, 0, bytes.Length);
             return arr;
         }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Threading;
 
 namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
 {
@@ -13,7 +14,7 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
         private int[] _depth;
         private int _nodeCount;
 
-        public CHGraph Preprocess(RoadGraph baseGraph)
+        public CHGraph Preprocess(RoadGraph baseGraph, IProgress<double> progress = null, CancellationToken cancel = default)
         {
             var sw = Stopwatch.StartNew();
 
@@ -50,8 +51,13 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
 
             int contractionOrder = 0;
 
+            int progressInterval = Math.Max(1, _nodeCount / 100);
+
             while (pq.Count > 0)
             {
+
+                cancel.ThrowIfCancellationRequested();
+
                 int node = pq.Dequeue();
                 if (_contracted[node]) continue;
 
@@ -70,9 +76,11 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
                 _contracted[node] = true;
                 _level[node] = contractionOrder++;
 
-                if (contractionOrder % 100000 == 0)
+                if (contractionOrder % progressInterval == 0)
+                {
+                    progress?.Report((double)contractionOrder / _nodeCount);
                     Debug.WriteLine($"CH: {contractionOrder}/{_nodeCount} ({100.0 * contractionOrder / _nodeCount:F1}%)");
-
+                }
                 foreach (var e in _adj[node])
                     if (!_contracted[e.Target])
                         pq.Enqueue(e.Target, ComputePriority(e.Target));
@@ -83,6 +91,7 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
             }
 
             sw.Stop();
+            progress?.Report(1.0);
             Debug.WriteLine($"CH: done in {sw.ElapsedMilliseconds}ms");
 
             return BuildCHGraph(baseGraph);

@@ -90,7 +90,7 @@ namespace adaptive_offline_gps.RoutingEngine.Benchmarking
         }
 
         /// <summary>
-        /// Build a single-pair "generated" list for SinglePair mode.
+        /// Build a single-pair "generated" list for SinglePair mode
         /// </summary>
         public QueryPair Single(int start, int end)
         {
@@ -105,9 +105,9 @@ namespace adaptive_offline_gps.RoutingEngine.Benchmarking
             return new QueryPair(1, start, end, km, label);
         }
 
-        //  Haversine in kilometres. Same primitive RoadGraphBuilder uses, repeated
-        //  here so the benchmark module doesn't reach across to RoadGraphBuilder
-        //  (and to return km not m, which matches bucket units).
+        //  Haversine in kilometres
+        //  Same primitive RoadGraphBuilder uses, repeated here so the benchmark module doesn't reach across to RoadGraphBuilder
+        //  (and to return km not m, which matches bucket units)
         private static double HaversineKm(double lat1, double lon1, double lat2, double lon2)
         {
             const double R = 6371.0; // km

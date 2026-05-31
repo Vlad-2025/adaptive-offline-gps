@@ -11,8 +11,8 @@ using adaptive_offline_gps.RoutingEngine.RoadGraphBuilding;
 namespace adaptive_offline_gps.RoutingEngine.Benchmarking
 {
     /// <summary>
-    /// Progress callback. Called from the runner thread, callers should
-    /// marshal to the UI thread themselves.
+    /// Progress callback
+    /// Called from the runner thread
     /// </summary>
     public delegate void BenchmarkProgressCallback(BenchmarkProgress progress);
 
@@ -48,22 +48,28 @@ namespace adaptive_offline_gps.RoutingEngine.Benchmarking
             BenchmarkConfig config,
             IEdgeWeightProvider weights,
             BenchmarkProgressCallback? onProgress = null,
-            CancellationToken cancel = default)
+            CancellationToken cancel = default,
+            CHGraph? chOverride = null)
         {
             var startUtc = DateTime.UtcNow;
 
             //  1. Generate queries
             var generator = new QueryGenerator(_graph, config.QuerySeed, config.MaxPairAttempts);
+
             List<QueryPair> queries;
+
             List<(DistanceBucket bucket, int generated, int requested)> failedBuckets;
 
             if (config.Mode == BenchmarkMode.SinglePair)
             {
                 if (config.SingleStart < 0 || config.SingleEnd < 0)
-                    throw new InvalidOperationException(
-                        "SinglePair mode requires SingleStart and SingleEnd to be set.");
+                    throw new InvalidOperationException("SinglePair mode requires SingleStart and SingleEnd to be set.");
 
-                queries = new List<QueryPair> { generator.Single(config.SingleStart, config.SingleEnd) };
+                queries = new List<QueryPair> 
+                { 
+                    generator.Single(config.SingleStart, config.SingleEnd) 
+                };
+
                 failedBuckets = new List<(DistanceBucket, int, int)>();
             }
             else
@@ -74,10 +80,10 @@ namespace adaptive_offline_gps.RoutingEngine.Benchmarking
             if (queries.Count == 0)
                 throw new InvalidOperationException("No queries generated; cannot benchmark.");
 
-            //  2. Resolve algorithm runners. We use small functors so the runner
-            //  doesn't care that CH ignores the weight provider while Dijkstra/A*
-            //  use it. The functor knows what to pass.
-            var runners = ResolveAlgorithms(config.AlgorithmNames);
+            //  2. Resolve algorithm runners
+            //  We use small functors so the runner doesn't care that CH ignores the weight provider while Dijkstra/A* use it
+            //  The functor knows what to pass
+            var runners = ResolveAlgorithms(config.AlgorithmNames, chOverride ?? _chGraph);
 
             //  3. Run all (algorithm × query) combinations
             int totalRuns = runners.Count * queries.Count * (config.WarmupRuns + config.MeasuredRuns);
@@ -85,10 +91,8 @@ namespace adaptive_offline_gps.RoutingEngine.Benchmarking
 
             var perRunByKey = new Dictionary<(string algo, int queryId), BenchmarkRunResult>();
 
-            //  Each query is run for every algorithm before moving to the next
-            //  query. This means measurements for a given query happen close
-            //  together in time - fairer if the OS scheduler / thermal state
-            //  drifts during the run.
+            //  Each query is run for every algorithm before moving to the next query
+            //  Measurements for a given query happen close together in time, fairer if the OS scheduler / thermal state drifts during the run
             foreach (var query in queries)
             {
                 foreach (var runner in runners)
@@ -103,6 +107,7 @@ namespace adaptive_offline_gps.RoutingEngine.Benchmarking
                             runner.Name, query.Id, "warmup"));
 
                         await runner.Run(query, weights, cancel);
+
                         completedRuns++;
                     }
 
@@ -119,8 +124,10 @@ namespace adaptive_offline_gps.RoutingEngine.Benchmarking
                             runner.Name, query.Id, "measure"));
 
                         var r = await runner.Run(query, weights, cancel);
+
                         elapsed[m] = r.ElapsedMs;
                         last = r;
+
                         completedRuns++;
                     }
 
@@ -145,7 +152,7 @@ namespace adaptive_offline_gps.RoutingEngine.Benchmarking
                 }
             }
 
-            //  4. Consensus check per query - flag any disagreement
+            //  4. Consensus check per query, flag any disagreement
             CheckCostAgreement(perRunByKey, queries);
 
             //  5. Build flat result list + aggregates
@@ -160,42 +167,42 @@ namespace adaptive_offline_gps.RoutingEngine.Benchmarking
             aggregates = aggregates.Select(a => new AlgorithmAggregate
             {
                 AlgorithmName = a.AlgorithmName,
-                QueryCount = a.QueryCount,
-                MeanMs = a.MeanMs,
-                MedianMs = a.MedianMs,
+                QueryCount  = a.QueryCount,
+                MeanMs      = a.MeanMs,
+                MedianMs    = a.MedianMs,
                 P95Ms = a.P95Ms,
                 P99Ms = a.P99Ms,
                 MinMs = a.MinMs,
                 MaxMs = a.MaxMs,
-                MeanNodesVisited = a.MeanNodesVisited,
+                MeanNodesVisited    = a.MeanNodesVisited,
                 MeanEdgeRelaxations = a.MeanEdgeRelaxations,
-                SpeedupVsBaseline = a.SpeedupVsBaseline,
-                CostDisagreements = resultsList
+                SpeedupVsBaseline   = a.SpeedupVsBaseline,
+                CostDisagreements   = resultsList
                     .Where(r => r.AlgorithmName == a.AlgorithmName && !r.CostAgreesWithOthers)
                     .Count(),
             }).ToList();
 
-            int chShortcuts = _chGraph.ForwardUp.Sum(a => a.Count(e => e.ShortcutMid != -1));
+            var effectiveCh = chOverride ?? _chGraph;
+            int chShortcuts = effectiveCh.ForwardUp.Sum(a => a.Count(e => e.ShortcutMid != -1));
 
             return new BenchmarkReport
             {
-                Config = config,
-                StartedUtc = startUtc,
+                Config      = config,
+                StartedUtc  = startUtc,
                 FinishedUtc = DateTime.UtcNow,
-                Queries = queries,
-                Results = resultsList,
-                Aggregates = aggregates,
+                Queries     = queries,
+                Results     = resultsList,
+                Aggregates  = aggregates,
                 FailedBuckets = failedBuckets,
-                GraphFile = _graphFile,
-                GraphNodes = _graph.NodeCount,
-                GraphEdges = _graph.EdgeCount,
+                GraphFile   = _graphFile,
+                GraphNodes  = _graph.NodeCount,
+                GraphEdges  = _graph.EdgeCount,
                 ChShortcuts = chShortcuts,
             };
         }
 
-        //  Cost agreement check: for each query, take the median cost across
-        //  algorithms that found a path. Any algorithm differing by more than
-        //  tolerance is flagged. Tolerance is relative (0.1%) to absorb float drift.
+        //  Cost agreement check: for each query, take the median cost across algorithms that found a path
+        //  Any algorithm differing by more than tolerance is flagged. Tolerance is relative (0.1%) to absorb float drift
         private static void CheckCostAgreement(
             Dictionary<(string, int), BenchmarkRunResult> byKey,
             List<QueryPair> queries)
@@ -209,12 +216,14 @@ namespace adaptive_offline_gps.RoutingEngine.Benchmarking
                     .Select(kv => kv.Value)
                     .ToList();
 
-                if (resultsForQuery.Count < 2) continue;
+                if (resultsForQuery.Count < 2) 
+                    continue;
 
-                //  Use median as consensus - robust to one outlier (e.g. a buggy
-                //  algorithm). With 3+ algos disagreeing badly, all get flagged
-                //  which is fine - surfaces the problem.
+                //  Use median as consensus, robust to one outlier (e.g. a buggy algorithm)
+                //  With 3+ algos disagreeing badly, all get flagged which is fine, surfaces the problem
+
                 var sortedCosts = resultsForQuery.Select(r => r.TotalCost).OrderBy(c => c).ToArray();
+
                 double consensus = sortedCosts[sortedCosts.Length / 2];
 
                 foreach (var r in resultsForQuery)
@@ -226,15 +235,16 @@ namespace adaptive_offline_gps.RoutingEngine.Benchmarking
                         r.CostAgreesWithOthers = false;
                         Debug.WriteLine(
                             $"Cost disagreement: query {query.Id} algo {r.AlgorithmName} " +
-                            $"reported {r.TotalCost:F2} vs consensus {consensus:F2}");
+                            $"reported {r.TotalCost:F2} vs consensus {consensus:F2}"
+                            );
                     }
                 }
             }
         }
 
-        //  Map config algorithm-names to little functor objects that know how to
-        //  invoke each algorithm. Keeps the runner agnostic of CH-vs-others quirks.
-        private List<AlgoRunner> ResolveAlgorithms(IReadOnlyList<string> names)
+        //  Map config algorithm-names to little functor objects that know how to invoke each algorithm
+        //  Keeps the runner agnostic of CH-vs-others quirks
+        private List<AlgoRunner> ResolveAlgorithms(IReadOnlyList<string> names, CHGraph chForRun)
         {
             var algorithms = new Dictionary<string, IRoutingAlgorithm>
             {
@@ -245,19 +255,18 @@ namespace adaptive_offline_gps.RoutingEngine.Benchmarking
             var list = new List<AlgoRunner>();
             foreach (var name in names)
             {
-                if(name == "CH")
+                if (name == "CH")
                 {
                     list.Add(
-                        new AlgoRunner("CH", (q, _, c) => 
-                            new CHAlgorithmWrapper(_chGraph).FindPathAsync(
-                                _graph, 
+                        new AlgoRunner("CH", (q, _, c) =>
+                            new CHAlgorithmWrapper(chForRun).FindPathAsync(
+                                _graph,
                                 q.StartNode,
-                                q.EndNode, 
-                                BaseWeightProvider.Instance, 
-                                BenchOptions(c), 
+                                q.EndNode,
+                                BaseWeightProvider.Instance,
+                                BenchOptions(c),
                                 NullVisualizer.Instance
                             )));
-                    
                     continue;
                 }
 
@@ -290,13 +299,14 @@ namespace adaptive_offline_gps.RoutingEngine.Benchmarking
         //  Internal: tagged delegate so the runner can call any algorithm uniformly.
         private record AlgoRunner(
             string Name,
-            Func<QueryPair, IEdgeWeightProvider, CancellationToken, Task<RoutingResult>> Run);
+            Func<QueryPair, IEdgeWeightProvider, CancellationToken, Task<RoutingResult>> Run
+            );
     }
 
     /// <summary>
-    /// IRoutingVisualizer that does nothing. Used for benchmark runs to bypass
-    /// rendering entirely - significant speedup vs even a no-op real visualizer
-    /// because the per-node await dispatches still cost something.
+    /// IRoutingVisualizer that does nothing
+    /// Used for benchmark runs to bypass rendering entirely; 
+    /// Significant speedup vs even a no-op real visualizer because the per-node await dispatches still cost something
     /// </summary>
     internal class NullVisualizer : IRoutingVisualizer
     {
