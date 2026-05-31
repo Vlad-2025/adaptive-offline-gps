@@ -55,11 +55,11 @@
                                      Popup child re-enables hit testing for its own buttons. -->
                                 <Canvas x:Name="MapOverlayCanvas">
                                     <ui:MapClickPopup x:Name="MapPopup" Panel.ZIndex="10"/>
-                                    <!-- Dismiss overlay: sized + shown in code when popup opens -->
+                                    <ui:BookmarkPopup x:Name="BookmarkPopup" Panel.ZIndex="10"/>
                                     <Rectangle x:Name="PopupDismissOverlay"
-                                               Fill="Transparent"
-                                               Visibility="Collapsed"
-                                               Panel.ZIndex="9"/>
+                                        Fill="Transparent"
+                                        Visibility="Collapsed"
+                                        Panel.ZIndex="9"/>
                                 </Canvas>
                             </Grid>
                         </Border>

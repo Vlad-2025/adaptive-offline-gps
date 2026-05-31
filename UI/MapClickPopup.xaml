@@ -40,6 +40,17 @@
 
                 <Separator Background="#2A2A3D" Margin="8,4"/>
 
+                <Button x:Name="BtnBookmark"
+                        Content="[ BOOKMARK HERE ]"
+                        Style="{StaticResource TopBarButton}"
+                        Foreground="#4488FF"
+                        HorizontalAlignment="Stretch"
+                        HorizontalContentAlignment="Left"
+                        Margin="4,2" Padding="8,5"
+                        Click="BtnBookmark_Click"/>
+
+                <Separator Background="#2A2A3D" Margin="8,4"/>
+
                 <Button x:Name="BtnDismiss"
                         Content="dismiss"
                         Background="Transparent" Foreground="#3A3A5C"

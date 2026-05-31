@@ -8,6 +8,7 @@ namespace adaptive_offline_gps.UI
     {
         public event Action? SetStartRequested;
         public event Action? SetEndRequested;
+        public event Action? BookmarkRequested;
         public event Action? PopupOpened;
         public event Action? PopupClosed;
 
@@ -49,6 +50,11 @@ namespace adaptive_offline_gps.UI
         {
             SetEndRequested?.Invoke();
             Hide();
+        }
+
+        private void BtnBookmark_Click(object sender, RoutedEventArgs e)
+        {
+            BookmarkRequested?.Invoke();
         }
 
         private void BtnDismiss_Click(object sender, RoutedEventArgs e) => Hide();

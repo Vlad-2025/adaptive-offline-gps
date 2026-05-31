@@ -1,5 +1,6 @@
 ﻿using adaptive_offline_gps.Data;
 using adaptive_offline_gps.EngineMap;
+using adaptive_offline_gps.RoutingEngine.Bookmarks;
 using adaptive_offline_gps.RoutingEngine.GraphAlgorithms;
 using adaptive_offline_gps.RoutingEngine.GraphAlgorithms.Algorithms;
 using adaptive_offline_gps.RoutingEngine.RoadGraphBuilding;
@@ -34,6 +35,7 @@ namespace adaptive_offline_gps
         private string? _osmFilePath;
         private MapRoutingController? _routingController;
         private MapVisualizer? _mapVisualizer;
+        private BookmarkStore? _bookmarks;
 
         private static readonly double SquaredUntilResolution = 156543.0 / Math.Pow(2, 3);  //  cannot be const because pow is runtime
 
@@ -404,6 +406,8 @@ namespace adaptive_offline_gps
                 _mapEngine = null;
             }
 
+            _bookmarks = null;
+
             //  Switch panels
             MapContainer.Visibility     = Visibility.Collapsed;
             DownloadPanel.Visibility    = Visibility.Visible;
@@ -468,17 +472,20 @@ namespace adaptive_offline_gps
 
                 _routingController?.Detach();
 
+                string baseRgphPath = Path.ChangeExtension(filePath, ".rgph");
+                _bookmarks = BookmarkStore.Load(baseRgphPath);
+
                 _routingController = new MapRoutingController(
                     mapControl,
                     _mapEngine.NodeIndex!,
                     _mapEngine.Graph,
                     MapPopup,
+                    BookmarkPopup,
                     MapOverlayCanvas,
                     PopupDismissOverlay,
-                    RouteInfoPanel
+                    RouteInfoPanel,
+                    _bookmarks
                     );
-
-                string baseRgphPath = Path.ChangeExtension(filePath, ".rgph");
 
                 BenchmarkPanelView.Initialize(_mapEngine.Graph, _mapEngine.ChGraph, filePath, baseRgphPath);
                 ScenarioPanelView.Initialize(_mapEngine.Graph, baseRgphPath);
