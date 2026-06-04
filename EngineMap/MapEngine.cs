@@ -26,6 +26,7 @@ namespace adaptive_offline_gps.EngineMap
 {
     public delegate void GraphReadyCallback(int nodeCount, int edgeCount, bool fromCache);
     public delegate void ViewportChangedCallback(double resolution, double zoom, double centerLon,  double centerLat, int featureCount);
+    public delegate void TileSourceStateChangedCallback(CompositeAvailabilityTileSource.SourceState newState);
 
     public class MapEngine : IDisposable
     {
@@ -33,6 +34,8 @@ namespace adaptive_offline_gps.EngineMap
         private readonly MemoryLayer _roadLayer, _visitedLayer, _pathLayer;
         private readonly RoadLodSelector _lodSelector;
         private readonly ViewportChangedCallback? _onViewportChanged;
+        private readonly CompositeAvailabilityTileSource? _tileSource;
+
         public MapVisualizer? _mapVisualizer;
 
         private Envelope? _lastEnvelope;
@@ -49,22 +52,44 @@ namespace adaptive_offline_gps.EngineMap
         public  CHGraph ChGraph => _chGraph;
 
 
-        public  MapVisualizer Visualizer { get; }
+        public MapVisualizer Visualizer { get; }
 
         public double CurrentResolution => _mapControl.Map?.Navigator?.Viewport.Resolution ?? double.MaxValue;
 
-        private static TileLayer CreateOsmTileLayer()
+        public event Action<CompositeAvailabilityTileSource.SourceState>? TileSourceStateChanged;
+
+        private TileLayer CreateCompositeTileLayer(out CompositeAvailabilityTileSource composite)
         {
-            var tileSource = new HttpTileSource(
+            // PRIMARY: online OSM
+            var onlineSource = new HttpTileSource(
                 new GlobalSphericalMercator(),
                 "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
                 new[] { "a", "b", "c" },
                 name: "OpenStreetMap",
                 configureHttpRequestMessage: msg =>
-                    msg.Headers.TryAddWithoutValidation("User-Agent",
-                        "OSMRoutingBenchmark/1.0 (your@email.com)"));
+                    msg.Headers.TryAddWithoutValidation("User-Agent", "OSMRoutingBenchmark/1.0 (your@email.com)"));
 
-            return new TileLayer(tileSource) { Name = "OSM" };
+            // SECONDARY: local tileserver-gl
+            // verify by visiting http://127.0.0.1:8080
+            var offlineSource = new HttpTileSource(
+                new GlobalSphericalMercator(),
+                "http://127.0.0.1:8080/styles/basic-preview/256/{z}/{x}/{y}.png",
+                name: "LocalMBTiles",
+                configureHttpRequestMessage: msg =>
+                    msg.Headers.TryAddWithoutValidation("User-Agent",
+                        "adaptive-offline-gps/1.0 (offline)"));
+
+            // Probe URL: cheapest possible OSM endpoint, the world-level tile
+            // 256 bytes, browsers and CDNs cache it
+            composite = new CompositeAvailabilityTileSource(
+                primary: onlineSource,
+                secondary: offlineSource
+                //probeUrl: "https://a.tile.openstreetmap.org/0/0/0.png",
+                //coolOff: TimeSpan.FromSeconds(10),
+                //probeInterval: TimeSpan.FromSeconds(15)
+                );
+
+            return new TileLayer(composite) { Name = "Tiles" };
         }
 
         private MapEngine
@@ -86,7 +111,11 @@ namespace adaptive_offline_gps.EngineMap
 
             var map = new Map();
 
-            map.Layers.Add(CreateOsmTileLayer());
+            var tileLayer = CreateCompositeTileLayer(out var composite);
+            map.Layers.Add(tileLayer);
+            _tileSource = composite;
+
+            _tileSource.StateChanged += s => TileSourceStateChanged?.Invoke(s);
 
             _roadLayer      = new MemoryLayer { 
                 Name = "Roads"
@@ -262,10 +291,11 @@ namespace adaptive_offline_gps.EngineMap
         public void Dispose()
         {
             _mapControl.Map.Navigator.ViewportChanged -= OnViewportChanged;
-            _roadLayer.Features     = new List<IFeature>();
-            _mapControl.Map         = new Map();
-            _visitedLayer.Features  = Array.Empty<IFeature>();
-            _pathLayer.Features     = Array.Empty<IFeature>();
+            //_tileSource?.Dispose();
+            _roadLayer.Features = new List<IFeature>();
+            _mapControl.Map = new Map();
+            _visitedLayer.Features = Array.Empty<IFeature>();
+            _pathLayer.Features = Array.Empty<IFeature>();
         }
     }
 }

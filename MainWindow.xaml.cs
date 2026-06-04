@@ -462,6 +462,8 @@ namespace adaptive_offline_gps
 
                 sw.Stop();
 
+                _mapEngine.TileSourceStateChanged += state => Dispatcher.Invoke(() => BottomBar.SetTileSource(state));
+
                 _mapVisualizer = _mapEngine.Visualizer;
 
                 BottomBar.SetLoadTime(sw.ElapsedMilliseconds);

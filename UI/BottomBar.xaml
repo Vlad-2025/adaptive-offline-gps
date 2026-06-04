@@ -19,6 +19,7 @@
             <TextBlock x:Name="TxtLoadTime"   Text="-" Style="{StaticResource StatusValue}"/>
             <TextBlock Text="memory usage "     Style="{StaticResource StatusLabel}"/>
             <TextBlock x:Name="TxtMemoryUsage"   Text="-" Style="{StaticResource StatusValue}"/>
+            <TextBlock x:Name="TxtTileSource" Foreground="#00FF88" FontFamily="Consolas" FontSize="11" Padding="6,2" Margin="8,0,0,0" Text="ONLINE"/>
         </StackPanel>
     </Border>
 </UserControl>
