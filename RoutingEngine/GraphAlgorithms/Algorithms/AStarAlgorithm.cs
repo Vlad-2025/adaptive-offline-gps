@@ -140,15 +140,16 @@ namespace adaptive_offline_gps.RoutingEngine.GraphAlgorithms.Algorithms
 
         private static float Heuristic(RoadGraph graph, int node, int target)
         {
-            float dLat = graph.NodeLat[node] - graph.NodeLat[target];
-            float dLon = graph.NodeLon[node] - graph.NodeLon[target];
+            const float DegLatMeters = 111_000f;
+            float dLat = (graph.NodeLat[node] - graph.NodeLat[target]) * DegLatMeters;
 
-            //  Fast approximate distance in degrees, scaled to seconds
-            //  Slightly off near poles
-            float degreeDist = MathF.Sqrt(dLat * dLat + dLon * dLon);
+            // Longitude degrees shrink with cos(latitude)
+            float midLat = (graph.NodeLat[node] + graph.NodeLat[target]) * 0.5f;
+            float cosLat = MathF.Cos(midLat * MathF.PI / 180f);
+            float dLon = (graph.NodeLon[node] - graph.NodeLon[target]) * DegLatMeters * cosLat;
 
-            //  1 deg ~ 111,000m -> divide by max speed to get lower bound
-            return degreeDist * 111_000f / MaxSpeedMs;
+            float distMeters = MathF.Sqrt(dLat * dLat + dLon * dLon);
+            return distMeters / MaxSpeedMs;
         }
 
 
