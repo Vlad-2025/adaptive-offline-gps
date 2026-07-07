@@ -28,24 +28,27 @@ namespace adaptive_offline_gps.WebDownloader
         {
             var html = await FetchHtmlAsync(pageUrl);
             var doc = new HtmlDocument();
+
             doc.LoadHtml(html);
 
             var regions = new List<GeofabrikRegion>();
 
-            var rows = doc.DocumentNode
-                .SelectNodes("//table[@id='subregions']//tr");
+            var rows = doc.DocumentNode.SelectNodes("//table[@id='subregions']//tr");
 
-            if (rows == null) return regions;
+            if (rows == null) 
+                return regions;
 
             foreach (var row in rows)
             {
                 var cells = row.SelectNodes(".//td");
+
                 if (cells == null || cells.Count < 2) 
                     continue;
 
                 //  Cell 0: region name + link to its .html page
                 var nameCell = cells[0];
                 var pageLink = nameCell.SelectSingleNode(".//a[@href]");
+
                 if (pageLink == null) 
                     continue;
 
@@ -56,29 +59,29 @@ namespace adaptive_offline_gps.WebDownloader
                 //  Cell 1: .osm.pbf download link (may not exist for continents)
                 string? pbfUrl = null;
                 var pbfLink = cells[1].SelectSingleNode(".//a[@href]");
+
                 if (pbfLink != null)
                 {
                     var pbfHref = pbfLink.GetAttributeValue("href", "");
+
                     if (pbfHref.EndsWith(".osm.pbf"))
                         pbfUrl = MakeAbsolute(pbfHref, pageUrl);
                 }
 
-                //  Cell 2: size like "(817&nbsp;MB)" - may be missing
+                //  Cell 2: size like "(800MB)" - may be missing
                 long sizeBytes = -1;
 
                 if (cells.Count > 2)
                 {
-                    var sizeText = System.Net.WebUtility.HtmlDecode(cells[2].InnerText)
-                        .Trim('(', ')', ' ', '\u00a0');
+                    var sizeText = System.Net.WebUtility.HtmlDecode(cells[2].InnerText).Trim('(', ')', ' ', '\u00a0');
 
                     sizeBytes = ParseSize(sizeText);
                 }
 
                 /*  A region has children if its page link goes to an .html page
                     We determine this by checking if the page itself has a subregions table
-                    - but that would require an extra request per row, so instead we
-                    use a heuristic: if pbfUrl is null OR the name is a known large region,
-                    mark as potentially having children. We confirm lazily when user drills in.
+                    if pbfUrl is null OR the name is a known large region,
+                    mark as potentially having children
                 */
 
                 bool hasChildren = fullPageUrl.EndsWith(".html") && pbfUrl != null;
@@ -113,13 +116,13 @@ namespace adaptive_offline_gps.WebDownloader
             return table != null;
         }
 
-        //  Parse the "File size: 31.8 GB" from a region's own page
-        //  Used as a fallback when the size isn't in the parent table cell
+        //  Parse the "File size: 3 GB" from a region's own page
+        //  Used as a fallback when the size isnt in the parent table cell
         public async Task<long> GetPageFileSizeAsync(string pageUrl)
         {
             var html = await FetchHtmlAsync(pageUrl);
 
-            //  "File size: 31.8 GB" or "File size: 732 MB"
+            //  "File size: 3 GB" or "File size: 800 MB"
             var match = Regex.Match(html,
                 @"File size:\s*([\d.]+)\s*(GB|MB|KB)",
                 RegexOptions.IgnoreCase);
@@ -177,15 +180,20 @@ namespace adaptive_offline_gps.WebDownloader
 
         private static long ParseSize(string text)
         {
-            //  "817 MB", "38.0 MB", "1.5 GB", "732 MB"
-            var parts = text.Split(new[] { ' ', '\u00a0' },
-                StringSplitOptions.RemoveEmptyEntries);
-            if (parts.Length < 2) return -1;
+            var parts = text.Split(
+                new[] { ' ', '\u00a0' },
+                StringSplitOptions.RemoveEmptyEntries
+                );
+
+            if (parts.Length < 2) 
+                return -1;
 
             if (!double.TryParse(parts[0],
                 System.Globalization.NumberStyles.Any,
                 System.Globalization.CultureInfo.InvariantCulture,
-                out double value)) return -1;
+                out double value)
+                )
+                return -1;
 
             return parts[1].ToUpperInvariant() switch
             {

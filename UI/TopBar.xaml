@@ -30,7 +30,6 @@
                 <Button x:Name="BtnLoadFile"   Content="[ LOAD FILE ]"   Style="{StaticResource AccentButton}" Margin="0,0,6,0" Click="BtnLoadFile_Click"/>
                 <Button x:Name="BtnBuildGraph" Content="[ BUILD GRAPH ]" Style="{StaticResource TopBarButton}" Margin="0,0,6,0" Click="BtnBuildGraph_Click"/>
                 <Button x:Name="BtnClearRoute" Content="[ CLEAR ROUTE ]" Style="{StaticResource TopBarButton}" Margin="0,0,6,0" Click="BtnClearRoute_Click"/>
-                <Button x:Name="BtnSettings"   Content="[ SETTINGS ]"    Style="{StaticResource TopBarButton}" Margin="0,0,6,0"/>
             </StackPanel>
 
             <!-- Status dot + label -->

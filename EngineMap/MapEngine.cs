@@ -47,7 +47,7 @@ namespace adaptive_offline_gps.EngineMap
         private RoadGraph _graph;
         public  RoadGraph Graph => _graph;
 
-        //  Contraction Hierarchies graf
+        //  Contraction Hierarchies Graph
         private CHGraph _chGraph;
         public  CHGraph ChGraph => _chGraph;
 
@@ -56,31 +56,34 @@ namespace adaptive_offline_gps.EngineMap
 
         public double CurrentResolution => _mapControl.Map?.Navigator?.Viewport.Resolution ?? double.MaxValue;
 
+        //  Map availability ======================================
+
         public event Action<CompositeAvailabilityTileSource.SourceState>? TileSourceStateChanged;
 
         private TileLayer CreateCompositeTileLayer(out CompositeAvailabilityTileSource composite)
         {
-            // PRIMARY: online OSM
+            //  PRIMARY: online OSM
             var onlineSource = new HttpTileSource(
                 new GlobalSphericalMercator(),
                 "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
                 new[] { "a", "b", "c" },
                 name: "OpenStreetMap",
                 configureHttpRequestMessage: msg =>
-                    msg.Headers.TryAddWithoutValidation("User-Agent", "OSMRoutingBenchmark/1.0 (your@email.com)"));
+                    msg.Headers.TryAddWithoutValidation("User-Agent", "OSMRoutingBenchmark/1.0 (your@email.com)")
+                );
 
-            // SECONDARY: local tileserver-gl
-            // verify by visiting http://127.0.0.1:8080
+            //  SECONDARY: local tileserver-gl
+            //  verify by visiting http://127.0.0.1:8080
             var offlineSource = new HttpTileSource(
                 new GlobalSphericalMercator(),
                 "http://127.0.0.1:8080/styles/basic-preview/256/{z}/{x}/{y}.png",
                 name: "LocalMBTiles",
                 configureHttpRequestMessage: msg =>
                     msg.Headers.TryAddWithoutValidation("User-Agent",
-                        "adaptive-offline-gps/1.0 (offline)"));
+                        "adaptive-offline-gps/1.0 (offline)")
+                );
 
             // Probe URL: cheapest possible OSM endpoint, the world-level tile
-            // 256 bytes, browsers and CDNs cache it
             composite = new CompositeAvailabilityTileSource(
                 primary: onlineSource,
                 secondary: offlineSource
@@ -91,6 +94,8 @@ namespace adaptive_offline_gps.EngineMap
 
             return new TileLayer(composite) { Name = "Tiles" };
         }
+
+        //  Main Map Engine ==========================================
 
         private MapEngine
             (
@@ -124,14 +129,7 @@ namespace adaptive_offline_gps.EngineMap
             map.Layers.Add(_roadLayer);
 
             _visitedLayer   = new MemoryLayer { 
-                Name = "Visited",
-                Style = new SymbolStyle
-                {
-                    Fill = new Brush(new Mapsui.Styles.Color(68, 136, 255, 180)), // alpha=180
-                    Outline = new Pen(new Mapsui.Styles.Color(0, 0, 0, 0), 0),
-                    SymbolScale = 0.12,
-                    SymbolType = SymbolType.Ellipse,
-                }
+                Name = "Visited"
             };
             _pathLayer      = new MemoryLayer { 
                 Name = "Path",
@@ -233,6 +231,7 @@ namespace adaptive_offline_gps.EngineMap
                 await Task.Run(()=> CHGraphSerializer.Save(chGraph, Path.ChangeExtension(osmFilePath, ".chgr")));
                 
                 int shortcuts = chGraph.ForwardUp.Sum(a => a.Count(e => e.ShortcutMid != -1));
+
                 Debug.WriteLine($"CH has {shortcuts} shortcuts");
             }
 
@@ -257,7 +256,8 @@ namespace adaptive_offline_gps.EngineMap
 
             if (_lastEnvelope != null
                 && Math.Abs(resolution - _lastResolution) < resolution * 0.05
-                && _lastEnvelope.Contains(envelope))
+                && _lastEnvelope.Contains(envelope)
+                )
                 return;
 
             _lastEnvelope = new Envelope(envelope);

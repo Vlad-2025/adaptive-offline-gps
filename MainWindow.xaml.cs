@@ -42,6 +42,7 @@ namespace adaptive_offline_gps
         public MainWindow()
         {
             InitializeComponent();
+            MapVisualizer.RegisterRenderer();
             Loaded += OnLoaded;
             SizeChanged += (_, _) => UpdateMapSquare();
         }
@@ -64,7 +65,7 @@ namespace adaptive_offline_gps
             LeftPanel.BenchmarkRequested     += OnBenchmarkRequested;
             BenchmarkPanelView.BackRequested += OnBenchmarkBackRequested;
 
-            LeftPanel.ScenariosRequested += OnScenariosRequested;
+            LeftPanel.ScenariosRequested    += OnScenariosRequested;
             ScenarioPanelView.BackRequested += OnScenarioBackRequested;
 
             UpdateMapSquare();
@@ -125,7 +126,7 @@ namespace adaptive_offline_gps
         private CancellationTokenSource? _routingCts;
 
         // When the user picks "CH (alt)", we branch before the IRoutingAlgorithm path
-        // because alternatives returns RoutingResult[] not RoutingResult.
+        // because alternatives returns RoutingResult[], not RoutingResult
 
         private async void OnRunRequested()
         {
@@ -154,10 +155,8 @@ namespace adaptive_offline_gps
 
             if (scenarioName != null)
             {
-                //  Real scenario: load both the weights and the CH from disk
-
                 //  The .chgr existence is enforced when populating the dropdown (only ready scenarios appear), so this should always succeed,
-                //  but guard defensively in case the file was deleted between refresh and run
+                //  but guard in case the file was deleted between refresh and run
                 string baseRgphPath = Path.ChangeExtension(_osmFilePath!, ".rgph");
                 var scenariosDir = ScenarioPipeline.ScenariosDirFor(baseRgphPath);
                 var csvPath = ScenarioPipeline.CsvPathFor(scenariosDir, scenarioName);
@@ -166,6 +165,7 @@ namespace adaptive_offline_gps
                 {
                     LeftPanel.Log($"scenario CSV missing: {csvPath}", DebugConsole.LogLevel.Error);
                     LeftPanel.SetRunning(false);
+
                     return;
                 }
 
@@ -215,7 +215,8 @@ namespace adaptive_offline_gps
                         _routingController.EndNodeIndex,
                         maxAlternatives,
                         options,
-                        _mapVisualizer);
+                        _mapVisualizer
+                        );
 
                     //  results[0] is always the optimal (or RoutingResult.NoPath if nothing found)
                     //  results[1..n] are accepted alternatives
@@ -238,7 +239,8 @@ namespace adaptive_offline_gps
                     RouteInfoPanel.Update(
                         optimal.DistanceMetres / 1000.0,
                         optimal.TotalCost,
-                        optimal.NodesVisited);
+                        optimal.NodesVisited
+                        );
 
                     //  Log a summary line per route so the user sees what was found
                     LeftPanel.Log(
@@ -280,7 +282,8 @@ namespace adaptive_offline_gps
                         _mapEngine.Graph,
                         chForRun,
                         _routingController.StartNodeIndex,
-                        _routingController.EndNodeIndex);
+                        _routingController.EndNodeIndex
+                        );
                 }
 
                 LeftPanel.Log($"running {algo.Name}...");
@@ -291,7 +294,8 @@ namespace adaptive_offline_gps
                     _routingController.EndNodeIndex,
                     weights,
                     options,
-                    _mapVisualizer);
+                    _mapVisualizer
+                    );
 
                 if (result.PathFound)
                 {
@@ -414,6 +418,7 @@ namespace adaptive_offline_gps
 
             TopBar.SetStatus("NO MAP LOADED", "#3A3A5C");
             TopBar.SetButtonsEnabled(true);
+
             LeftPanel.SetGraphStats(0, 0);
             LeftPanel.Log("map unloaded");
         }
@@ -423,6 +428,7 @@ namespace adaptive_offline_gps
         {
             TopBar.SetStatus("LOADING...", "#FFB830");
             TopBar.SetButtonsEnabled(false);
+
             LoadingOverlay.Visibility = Visibility.Visible;
 
             //  measure time needed to load map
@@ -522,7 +528,7 @@ namespace adaptive_offline_gps
         private DispatcherTimer? _resizeDebounce;
 
         //  Adds a delay for the animation, waiting for the user to stop resizing 
-        private void MapContainer_SizeChanged(object sender, SizeChangedEventArgs e)// => UpdateMapSquare();
+        private void MapContainer_SizeChanged(object sender, SizeChangedEventArgs e) // => UpdateMapSquare();
         {
             _resizeDebounce?.Stop();
             _resizeDebounce = new DispatcherTimer

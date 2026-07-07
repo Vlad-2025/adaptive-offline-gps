@@ -56,9 +56,9 @@ namespace adaptive_offline_gps.Data
                 stream.Position = 0;
                 source = new PBFOsmStreamSource(stream);
 
-                var majorWays = new List<Geometry>();
+                var majorWays  = new List<Geometry>();
                 var mediumWays = new List<Geometry>();
-                var minorWays = new List<Geometry>();
+                var minorWays  = new List<Geometry>();
 
                 //  Second pass: ways
                 progress?.Report("reading ways...");
@@ -101,7 +101,7 @@ namespace adaptive_offline_gps.Data
                     }
                 }
 
-                //  I tried using parallel, not much changed
+                //  I tried using parallel threads, not much changed
 
                 progress?.Report("merging geometries...");
 
@@ -125,6 +125,7 @@ namespace adaptive_offline_gps.Data
                 Debug.WriteLine($"minor:  {minorWays.Count} ways -> {index.Minor.Count} merged");
 
                 index.BuildAll();
+
                 return index;
             });
     }
@@ -132,7 +133,8 @@ namespace adaptive_offline_gps.Data
         STRtree<GeometryFeature> fullTree,
         STRtree<GeometryFeature> lowTree,
         List<Geometry> ways,
-        double lowTolerance)
+        double lowTolerance
+        )
         {
             var merger = new LineMerger();
 

@@ -32,8 +32,8 @@ namespace adaptive_offline_gps.EngineMap
         private readonly RouteInfoPanel _routeInfoPanel;
         private readonly BookmarkStore _bookmarks;
 
-        private readonly MemoryLayer _startLayer = new() { Name = "StartPin" };
-        private readonly MemoryLayer _endLayer = new() { Name = "EndPin" };
+        private readonly MemoryLayer _startLayer    = new() { Name = "StartPin" };
+        private readonly MemoryLayer _endLayer      = new() { Name = "EndPin" };
         private readonly MemoryLayer _bookmarkLayer = new() { Name = "Bookmarks" };
 
         public int StartNodeIndex { get; private set; } = -1;
@@ -94,7 +94,7 @@ namespace adaptive_offline_gps.EngineMap
 
             _dismissOverlay.MouseDown += OnDismissOverlayClicked;
 
-            //  Render any pre-existing bookmarks (loaded from disk).
+            //  Render any pre-existing bookmarks (loaded from disk)
             RefreshBookmarkLayer();
         }
 
@@ -122,7 +122,7 @@ namespace adaptive_offline_gps.EngineMap
             _mapControl.Map.Layers.Remove(_bookmarkLayer);
         }
 
-        //  Dismiss overlay -----------------------------------------------------
+        //  Dismiss overlay =============================================
 
         private void OnDismissOverlayClicked(object sender, EventArgs e)
         {
@@ -147,20 +147,20 @@ namespace adaptive_offline_gps.EngineMap
             }
         }
 
-        //  Map click -----------------------------------------------------------
+        //  Map click =============================================
 
         private void OnMapInfo(object sender, MapInfoEventArgs e)
         {
             _popup.Hide();
             _bookmarkPopup.Hide();
 
-            if (e.WorldPosition == null) return;
+            if (e.WorldPosition == null) 
+                return;
 
             var world = e.WorldPosition;
-            var screenPos = _mapControl.Map.Navigator.Viewport
-                .WorldToScreen(world.X, world.Y);
+            var screenPos = _mapControl.Map.Navigator.Viewport.WorldToScreen(world.X, world.Y);
 
-            //  First: did we click an existing bookmark?
+            //  Did we click an existing bookmark?
             var hit = HitTestBookmark(screenPos.X, screenPos.Y);
             if (hit != null)
             {
@@ -168,10 +168,12 @@ namespace adaptive_offline_gps.EngineMap
                 return;
             }
 
-            //  Fall through to nearest-junction popup.
+            //  Fall through to nearest-junction popup
             var (lon, lat) = SphericalMercator.ToLonLat(world.X, world.Y);
             int nodeIdx = _nodeIndex.FindNearestNode(lat, lon);
-            if (nodeIdx < 0) return;
+
+            if (nodeIdx < 0) 
+                return;
 
             _popup.Show(screenPos.X, screenPos.Y, nodeIdx, lat, lon);
         }
@@ -204,7 +206,7 @@ namespace adaptive_offline_gps.EngineMap
             return best;
         }
 
-        //  Popup actions: start/end --------------------------------------------
+        //  Popup actions: start/end =============================================
 
         private void OnSetStart()
         {
@@ -224,11 +226,11 @@ namespace adaptive_offline_gps.EngineMap
             CheckReady();
         }
 
-        //  Popup actions: bookmarks --------------------------------------------
+        //  Popup actions: bookmarks =============================================
 
         private void OnBookmarkAtClick()
         {
-            //  Capture the click context before hiding (the dialog steals focus).
+            //  Capture the click context before hiding (the dialog steals focus)
             double lat = _popup.ClickLat;
             double lon = _popup.ClickLon;
 
@@ -255,16 +257,18 @@ namespace adaptive_offline_gps.EngineMap
             if (b == null) 
                 return;
 
-            //  Resolve nearest junction lazily — bookmark stores lat/lon, not
-            //  node index, so it survives graph rebuilds. The popup is already
-            //  hidden by the time this runs (Set* events Hide internally).
+            //  Resolve nearest junction lazily
+            //  Bookmark stores lat/lon, not node index, so it survives graph rebuilds
+            //  The popup is already hidden by the time this runs
             int nodeIdx = _nodeIndex.FindNearestNode(b.Lat, b.Lon);
 
             if (nodeIdx < 0) 
                 return;
 
             StartNodeIndex = nodeIdx;
+
             PlacePin(_startLayer, StartNodeIndex, PinStart, "S");
+
             _routeInfoPanel.SetStart(b.Lat, b.Lon);
 
             CheckReady();
@@ -278,11 +282,14 @@ namespace adaptive_offline_gps.EngineMap
                 return;
 
             int nodeIdx = _nodeIndex.FindNearestNode(b.Lat, b.Lon);
+
             if (nodeIdx < 0) 
                 return;
 
             EndNodeIndex = nodeIdx;
+
             PlacePin(_endLayer, EndNodeIndex, PinEnd, "E");
+
             _routeInfoPanel.SetEnd(b.Lat, b.Lon);
 
             CheckReady();
@@ -304,15 +311,14 @@ namespace adaptive_offline_gps.EngineMap
             if (dlg.ShowDialog() == true)
             {
                 _bookmarks.Rename(b, dlg.ResultName);
-                //  Name lives only in the popup header — no need to redraw the
-                //  marker layer (markers don't show names). But the popup is
-                //  still showing the old name on screen; refresh by closing it.
+                //  Name lives only in the popup header, so no need to redraw the marker layer (markers dont show names)
+                //  But the popup is still showing the old name on screen
+                //  Refresh by closing it
                 _bookmarkPopup.Hide();
             }
             else
             {
-                //  User cancelled — leave the popup open for further actions.
-                //  No-op.
+                //  User cancelled, leave the popup open for further actions
             }
         }
 
@@ -339,7 +345,7 @@ namespace adaptive_offline_gps.EngineMap
             }
         }
 
-        //  Wiring helpers ------------------------------------------------------
+        //  Wiring helpers =============================================
 
         private void CheckReady()
         {
@@ -393,9 +399,8 @@ namespace adaptive_offline_gps.EngineMap
                 var (mx, my) = SphericalMercator.FromLonLat(b.Lon, b.Lat);
                 var feat = new GeometryFeature { Geometry = new Point(mx, my) };
 
-                //  Diamond / square marker, smaller than start/end ellipses,
-                //  in bookmark blue. Name is intentionally NOT a label here —
-                //  per design, names only appear in the popup on click.
+                //  Square marker, smaller than start/end ellipses, blue
+                //  Name is intentionally not a label here, names only appear in the popup on click
                 feat.Styles.Add(new SymbolStyle
                 {
                     Fill = new Brush(PinBookmark),

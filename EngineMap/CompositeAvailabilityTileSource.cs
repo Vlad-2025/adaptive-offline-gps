@@ -31,15 +31,18 @@ namespace adaptive_offline_gps.EngineMap
 
         public async Task<byte[]?> GetTileAsync(HttpClient httpClient, TileInfo tileInfo, CancellationToken? cancellation = null)
         {
-            // Try primary. Treat both exceptions AND null/empty returns as failure.
+            //  Try primary
+            //  Treat both exceptions AND null/empty returns as failure
             try
             {
                 var bytes = await _primary.GetTileAsync(httpClient, tileInfo, cancellation);
+
                 if (bytes != null && bytes.Length > 0)
                 {
                     SetState(SourceState.Primary);
                     return bytes;
                 }
+
                 Debug.WriteLine($"TileSource: primary returned null/empty for {tileInfo.Index.Level}/{tileInfo.Index.Col}/{tileInfo.Index.Row}, trying secondary");
             }
             catch (Exception ex)
@@ -49,6 +52,7 @@ namespace adaptive_offline_gps.EngineMap
 
             // Fall through to secondary
             SetState(SourceState.Secondary);
+
             return await _secondary.GetTileAsync(httpClient, tileInfo, cancellation);
         }
 
