@@ -59,13 +59,16 @@ namespace adaptive_offline_gps.RoutingEngine.Benchmarking
 
                     int s = rng.Next(n);
                     int e = rng.Next(n);
-                    if (s == e) continue;
+
+                    if (s == e) 
+                        continue;
 
                     double km = HaversineKm(
                         _graph.NodeLat[s], _graph.NodeLon[s],
                         _graph.NodeLat[e], _graph.NodeLon[e]);
 
-                    if (km < bucket.MinKm || km >= bucket.MaxKm) continue;
+                    if (km < bucket.MinKm || km >= bucket.MaxKm) 
+                        continue;
 
                     pairs.Add(new QueryPair(
                         Id: nextId++,
@@ -117,6 +120,7 @@ namespace adaptive_offline_gps.RoutingEngine.Benchmarking
                        Math.Cos(lat1 * Math.PI / 180.0) * Math.Cos(lat2 * Math.PI / 180.0) *
                        Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
             double c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
+
             return R * c;
         }
     }

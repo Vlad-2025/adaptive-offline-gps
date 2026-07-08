@@ -42,14 +42,21 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
 
             foreach (var elem in source)
             {
-                if (elem.Type != OsmGeoType.Way) continue;
+                if (elem.Type != OsmGeoType.Way) 
+                    continue;
+
                 var way = (Way)elem;
-                if (way.Tags == null || !way.Tags.ContainsKey("highway")) continue;
-                if (!SpeedMap.ContainsKey(way.Tags["highway"])) continue;
+
+                if (way.Tags == null || !way.Tags.ContainsKey("highway")) 
+                    continue;
+
+                if (!SpeedMap.ContainsKey(way.Tags["highway"])) 
+                    continue;
 
                 for (int i = 0; i < way.Nodes.Length; i++)
                 {
                     long nid = way.Nodes[i];
+
                     if (nodeRefCount.ContainsKey(nid))
                         nodeRefCount[nid]++;
                     else
@@ -64,6 +71,7 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
             }
 
             var junctionOsmIds = new HashSet<long>();
+
             foreach (var (nid, count) in nodeRefCount)
             {
                 if (count > 1 || wayEndpoints.Contains(nid))
@@ -74,6 +82,7 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
             var allRoadNodeIds = new HashSet<long>(nodeRefCount.Keys);
 
             int totalRoadNodes = nodeRefCount.Count;
+
             Debug.WriteLine($"RoadGraph: {totalRoadNodes} road nodes, {junctionOsmIds.Count} junctions " +
                             $"({100.0 * junctionOsmIds.Count / totalRoadNodes:F1}% are junctions)");
 
@@ -97,8 +106,11 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
 
             foreach (var elem in source)
             {
-                if (elem.Type != OsmGeoType.Node) continue;
+                if (elem.Type != OsmGeoType.Node) 
+                    continue;
+
                 var node = (Node)elem;
+
                 if (!node.Id.HasValue || !node.Latitude.HasValue || !node.Longitude.HasValue)
                     continue;
 
@@ -149,8 +161,11 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
 
             foreach (var elem in source)
             {
-                if (elem.Type != OsmGeoType.Way) continue;
+                if (elem.Type != OsmGeoType.Way) 
+                    continue;
+
                 var way = (Way)elem;
+
                 if (way.Tags == null || !SpeedMap.TryGetValue(way.Tags.GetValue("highway") ?? "", out float speed))
                     continue;
 
@@ -217,9 +232,14 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
             long firstOsm = segmentOsmIds[0];
             long lastOsm = segmentOsmIds[^1];
 
-            if (!junctionIndex.TryGetValue(firstOsm, out int juncA)) return;
-            if (!junctionIndex.TryGetValue(lastOsm, out int juncB)) return;
-            if (juncA == juncB) return;
+            if (!junctionIndex.TryGetValue(firstOsm, out int juncA)) 
+                return;
+
+            if (!junctionIndex.TryGetValue(lastOsm, out int juncB)) 
+                return;
+
+            if (juncA == juncB) 
+                return;
 
             float totalDist = 0;
             var pillarLat = new List<float>();

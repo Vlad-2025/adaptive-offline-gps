@@ -159,9 +159,12 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
             mult = 1.0f;
 
             int c1 = line.IndexOf(',');
-            if (c1 < 0) return false;
+            if (c1 < 0) 
+                return false;
+
             int c2 = line.IndexOf(',', c1 + 1);
-            if (c2 < 0) return false;
+            if (c2 < 0) 
+                return false;
 
             var sFrom = line.AsSpan(0, c1);
             var sTo   = line.AsSpan(c1 + 1, c2 - c1 - 1);

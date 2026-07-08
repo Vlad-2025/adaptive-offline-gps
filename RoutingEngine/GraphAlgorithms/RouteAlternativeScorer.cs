@@ -68,22 +68,28 @@ namespace adaptive_offline_gps.RoutingEngine.GraphAlgorithms
 
             foreach (var (path, cost) in candidates)
             {
-                if (accepted.Count >= maxAlternatives) break;
+                if (accepted.Count >= maxAlternatives) 
+                    break;
 
                 //  1. Stretch
-                if (cost > stretchLimit) continue;
+                if (cost > stretchLimit) 
+                    continue;
 
                 //  Skip exact duplicates of optimal (cost == optimalCost path)
-                if (PathsEqual(path, optimalPath)) continue;
+                if (PathsEqual(path, optimalPath)) 
+                    continue;
 
                 //  Compute this candidate's edge set and length once
                 var altEdges = new Dictionary<long, double>(path.Length);
                 double altLength = AddPathEdges(path, altEdges);
-                if (altLength <= 0) continue;
+
+                if (altLength <= 0) 
+                    continue;
 
                 //  2. Sharing vs optimal
                 double sharedWithOptimal = SharedLength(altEdges, optimalEdges);
-                if (sharedWithOptimal / altLength > MaxSharing) continue;
+                if (sharedWithOptimal / altLength > MaxSharing) 
+                    continue;
 
                 //  3. Sharing vs each already-accepted alternative
                 bool tooSimilar = false;
@@ -94,9 +100,14 @@ namespace adaptive_offline_gps.RoutingEngine.GraphAlgorithms
                     //  catch "this candidate is essentially a subset of an existing alt"
                     //  symmetrically.
                     double denom = altLength < acceptedLengths[i] ? altLength : acceptedLengths[i];
-                    if (shared / denom > MaxSharing) { tooSimilar = true; break; }
+                    if (shared / denom > MaxSharing) 
+                    { 
+                        tooSimilar = true; 
+                        break; 
+                    }
                 }
-                if (tooSimilar) continue;
+                if (tooSimilar) 
+                    continue;
 
                 accepted.Add((path, cost));
                 acceptedEdgeSets.Add(altEdges);
@@ -151,15 +162,21 @@ namespace adaptive_offline_gps.RoutingEngine.GraphAlgorithms
             var (small, big) = a.Count <= b.Count ? (a, b) : (b, a);
             double shared = 0;
             foreach (var kv in small)
-                if (big.ContainsKey(kv.Key)) shared += kv.Value;
+                if (big.ContainsKey(kv.Key)) 
+                    shared += kv.Value;
+
             return shared;
         }
 
         private static bool PathsEqual(int[] a, int[] b)
         {
-            if (a.Length != b.Length) return false;
+            if (a.Length != b.Length) 
+                return false;
+
             for (int i = 0; i < a.Length; i++)
-                if (a[i] != b[i]) return false;
+                if (a[i] != b[i]) 
+                    return false;
+
             return true;
         }
     }

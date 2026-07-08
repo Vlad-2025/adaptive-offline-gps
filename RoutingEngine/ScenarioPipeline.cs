@@ -32,13 +32,13 @@ namespace adaptive_offline_gps.RoutingEngine
     ///       -> ChGraphSerializer.Save       (write country.scenario_X.chgr)
     ///
     /// Naming convention used throughout:
-    ///   base graph: &lt;country&gt;.rgph
-    ///   per scenario: &lt;country&gt;.scenario_&lt;name&gt;.chgr
-    ///   csv input:  &lt;scenariosDir&gt;/scenario_&lt;name&gt;.csv
+    ///   base graph: country.rgph
+    ///   per scenario: country.scenario_name.chgr
+    ///   csv input: scenariosDir/scenario_name.csv
     /// </summary>
     public static class ScenarioPipeline
     {
-        //  Filename helpers ----------------------------------------------------
+        //  Filename helpers ======================================================
 
         /// <summary>Path to the .chgr for a given country + scenario.</summary>
         public static string ChPathFor(string baseRgphPath, string scenarioName)
@@ -66,6 +66,7 @@ namespace adaptive_offline_gps.RoutingEngine
                     result.Add(name.Substring(prefix.Length));
             }
             result.Sort(StringComparer.OrdinalIgnoreCase);
+
             return result;
         }
 
@@ -105,7 +106,7 @@ namespace adaptive_offline_gps.RoutingEngine
             return stale;
         }
 
-        //  Preprocessing -------------------------------------------------------
+        //  Preprocessing ======================================================
 
         /// <summary>
         /// Preprocess one scenario: apply CSV, run CH, save .chgr.
@@ -131,8 +132,10 @@ namespace adaptive_offline_gps.RoutingEngine
 
             //  1. Apply scenario multipliers
             log($"[scenario:{scenarioName}] Applying CSV multipliers...");
+
             var swApply = Stopwatch.StartNew();
             var applied = ScenarioWeightLoader.Apply(baseGraph, csvPath);
+
             swApply.Stop();
 
             result.ApplyTime = swApply.Elapsed;
@@ -145,18 +148,24 @@ namespace adaptive_offline_gps.RoutingEngine
 
             //  2. CH preprocessing
             log($"[scenario:{scenarioName}] CH preprocessing (this takes ~20 min)...");
+
             var swCh = Stopwatch.StartNew();
             var ch = new CHPreprocessor().Preprocess(applied.Graph);
+
             swCh.Stop();
 
             result.PreprocessTime = swCh.Elapsed;
+
             log($"[scenario:{scenarioName}] CH built in {swCh.Elapsed.TotalMinutes:F1} min");
 
             //  3. Save .chgr with scenario tag in the header
             log($"[scenario:{scenarioName}] Writing {chPath}");
+
             var swSave = Stopwatch.StartNew();
             CHGraphSerializer.Save(ch, chPath, scenarioName);
+
             swSave.Stop();
+
             result.SaveTime = swSave.Elapsed;
 
             log($"[scenario:{scenarioName}] Done. " +
@@ -174,7 +183,8 @@ namespace adaptive_offline_gps.RoutingEngine
         public static List<ScenarioPreprocessResult> PreprocessScenarios(
             RoadGraph baseGraph, string baseRgphPath,
             string scenariosDir, IEnumerable<string> scenarioNames,
-            Action<string> log = null)
+            Action<string> log = null
+            )
         {
             var results = new List<ScenarioPreprocessResult>();
             foreach (var name in scenarioNames)
@@ -185,7 +195,7 @@ namespace adaptive_offline_gps.RoutingEngine
             return results;
         }
 
-        //  Runtime selection ---------------------------------------------------
+        //  Runtime selection ======================================================
 
         /// <summary>
         /// Load a preprocessed scenario .chgr at runtime. Requires the base graph

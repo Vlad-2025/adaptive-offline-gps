@@ -74,17 +74,21 @@ namespace adaptive_offline_gps.RoutingEngine.GraphAlgorithms
             while (pq.Count > 0)
             {
                 int u = pq.Dequeue();
-                if (settled[u]) continue;
+                if (settled[u]) 
+                    continue;
+
                 settled[u] = true;
                 visited++;
 
-                if (u == end) break;
+                if (u == end) 
+                    break;
 
                 for (int e = graph.EdgeHead[u]; e < graph.EdgeHead[u + 1]; e++)
                 {
                     int v = graph.EdgeTarget[e];
                     float w = graph.EdgeWeight[e];
                     float nd = dist[u] + w;
+
                     if (nd < dist[v])
                     {
                         dist[v] = nd;
@@ -94,6 +98,7 @@ namespace adaptive_offline_gps.RoutingEngine.GraphAlgorithms
             }
 
             found = dist[end] < float.MaxValue;
+
             return dist[end];
         }
 
@@ -131,15 +136,20 @@ namespace adaptive_offline_gps.RoutingEngine.GraphAlgorithms
                 float minF = pqF.Count > 0 ? PeekP(pqF) : float.MaxValue;
                 float minB = pqB.Count > 0 ? PeekP(pqB) : float.MaxValue;
 
-                if (minF >= bestDist && minB >= bestDist) break;
+                if (minF >= bestDist && minB >= bestDist) 
+                    break;
 
                 bool stepForward = minF <= minB;
 
                 if (stepForward && pqF.Count > 0)
                 {
                     int u = pqF.Dequeue();
-                    if (settledF[u]) continue;
-                    if (distF[u] >= bestDist) continue;
+
+                    if (settledF[u]) 
+                        continue;
+
+                    if (distF[u] >= bestDist) 
+                        continue;
 
                     settledF[u] = true;
                     visited++;
@@ -148,7 +158,11 @@ namespace adaptive_offline_gps.RoutingEngine.GraphAlgorithms
                     if (distB[u] < float.MaxValue)
                     {
                         float total = distF[u] + distB[u];
-                        if (total < bestDist) { bestDist = total; meetNode = u; }
+                        if (total < bestDist) 
+                        { 
+                            bestDist = total; 
+                            meetNode = u; 
+                        }
                     }
 
                     foreach (var e in ch.ForwardUp[u])
@@ -164,8 +178,12 @@ namespace adaptive_offline_gps.RoutingEngine.GraphAlgorithms
                 else if (pqB.Count > 0)
                 {
                     int u = pqB.Dequeue();
-                    if (settledB[u]) continue;
-                    if (distB[u] >= bestDist) continue;
+
+                    if (settledB[u]) 
+                        continue;
+
+                    if (distB[u] >= bestDist) 
+                        continue;
 
                     settledB[u] = true;
                     visited++;
@@ -174,7 +192,11 @@ namespace adaptive_offline_gps.RoutingEngine.GraphAlgorithms
                     if (distF[u] < float.MaxValue)
                     {
                         float total = distF[u] + distB[u];
-                        if (total < bestDist) { bestDist = total; meetNode = u; }
+                        if (total < bestDist) 
+                        { 
+                            bestDist = total; 
+                            meetNode = u; 
+                        }
                     }
 
                     foreach (var e in ch.BackwardUp[u])

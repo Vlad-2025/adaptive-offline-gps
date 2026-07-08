@@ -44,8 +44,7 @@ namespace adaptive_offline_gps.RoutingEngine.GraphAlgorithms
             RoutingEngine.RoadGraphBuilding.RoadGraph baseGraph, string csvPath)
         {
             if (baseGraph.NodeOsmId == null)
-                throw new InvalidOperationException(
-                    "Base graph has no NodeOsmId - rebuild the .rgph cache (v3).");
+                throw new InvalidOperationException("Base graph has no NodeOsmId - rebuild the .rgph cache (v3).");
 
             //  (fromOsmId, toOsmId) -> edgeIndex
             var edgeIndex = new Dictionary<(long, long), int>(baseGraph.EdgeCount);
@@ -70,21 +69,24 @@ namespace adaptive_offline_gps.RoutingEngine.GraphAlgorithms
                 string line;
                 while ((line = sr.ReadLine()) != null)
                 {
-                    if (line.Length == 0) continue;
+                    if (line.Length == 0) 
+                        continue;
 
                     int c1 = line.IndexOf(',');
-                    if (c1 < 0) continue;
-                    int c2 = line.IndexOf(',', c1 + 1);
-                    if (c2 < 0) continue;
+                    if (c1 < 0) 
+                        continue;
 
-                    if (!long.TryParse(line.AsSpan(0, c1), NumberStyles.Integer,
-                            CultureInfo.InvariantCulture, out long fromId))
+                    int c2 = line.IndexOf(',', c1 + 1);
+                    if (c2 < 0) 
                         continue;
-                    if (!long.TryParse(line.AsSpan(c1 + 1, c2 - c1 - 1), NumberStyles.Integer,
-                            CultureInfo.InvariantCulture, out long toId))
+
+                    if (!long.TryParse(line.AsSpan(0, c1), NumberStyles.Integer, CultureInfo.InvariantCulture, out long fromId))
                         continue;
-                    if (!float.TryParse(line.AsSpan(c2 + 1), NumberStyles.Float,
-                            CultureInfo.InvariantCulture, out float m))
+
+                    if (!long.TryParse(line.AsSpan(c1 + 1, c2 - c1 - 1), NumberStyles.Integer, CultureInfo.InvariantCulture, out long toId))
+                        continue;
+
+                    if (!float.TryParse(line.AsSpan(c2 + 1), NumberStyles.Float, CultureInfo.InvariantCulture, out float m))
                         continue;
 
                     if (edgeIndex.TryGetValue((fromId, toId), out int e))
@@ -92,16 +94,17 @@ namespace adaptive_offline_gps.RoutingEngine.GraphAlgorithms
                 }
             }
 
-            return new ScenarioWeightProvider(
-                ScenarioNameFromPath(csvPath), mult);
+            return new ScenarioWeightProvider(ScenarioNameFromPath(csvPath), mult);
         }
 
         private static string ScenarioNameFromPath(string csvPath)
         {
             string name = Path.GetFileNameWithoutExtension(csvPath);
             const string prefix = "scenario_";
+
             if (name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
                 name = name.Substring(prefix.Length);
+
             return name;
         }
     }

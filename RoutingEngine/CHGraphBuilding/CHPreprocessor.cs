@@ -59,7 +59,8 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
                 cancel.ThrowIfCancellationRequested();
 
                 int node = pq.Dequeue();
-                if (_contracted[node]) continue;
+                if (_contracted[node]) 
+                    continue;
 
                 int fresh = ComputePriority(node);
                 if (pq.Count > 0)
@@ -97,7 +98,7 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
             return BuildCHGraph(baseGraph);
         }
 
-        // ===== Priority =====
+        // Priority ============================================================
 
         private int ComputePriority(int node)
         {
@@ -108,10 +109,14 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
             int edgeDiff = shortcutsAdded - edgesRemoved;
 
             int contractedNeighbors = 0;
+
             foreach (var e in _adj[node])
-                if (_contracted[e.Target]) contractedNeighbors++;
+                if (_contracted[e.Target]) 
+                    contractedNeighbors++;
+
             foreach (var e in _revAdj[node])
-                if (_contracted[e.Target]) contractedNeighbors++;
+                if (_contracted[e.Target]) 
+                    contractedNeighbors++;
 
             return 2 * edgeDiff + 5 * contractedNeighbors + 2 * _depth[node];
         }
@@ -161,7 +166,7 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
             return count;
         }
 
-        // ===== Contraction =====
+        // Contraction ============================================================
 
         private void ContractNode(int node)
         {
@@ -214,7 +219,7 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
             list.Add(new CHEdge(target, weight, mid));
         }
 
-        // ===== Witness search =====
+        // Witness search ============================================================
 
         private Dictionary<int, float> WitnessSearch(int source, int excludeNode, float maxWeight)
         {
@@ -251,7 +256,7 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
             return dist;
         }
 
-        // ===== assembly =====
+        // assembly ============================================================
 
         /// <summary>
         /// Walk every edge in the contracted graph exactly once and place it into

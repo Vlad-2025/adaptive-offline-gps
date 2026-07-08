@@ -26,7 +26,7 @@ namespace adaptive_offline_gps.RoutingEngine.Bookmarks
 
         private BookmarkStore(string path) { _path = path; }
 
-        //  Path helpers --------------------------------------------------------
+        //  Path helpers ============================================================
 
         /// <summary>
         /// Path to the bookmark file for a given base graph path.
@@ -36,10 +36,11 @@ namespace adaptive_offline_gps.RoutingEngine.Bookmarks
         {
             string dir = Path.GetDirectoryName(baseRgphPath) ?? ".";
             string name = Path.GetFileNameWithoutExtension(baseRgphPath);
+
             return Path.Combine(dir, $"{name}.bookmarks.json");
         }
 
-        //  Lifecycle -----------------------------------------------------------
+        //  Lifecycle ============================================================
 
         /// <summary>
         /// Load (or create empty) the store for a graph.
@@ -55,6 +56,7 @@ namespace adaptive_offline_gps.RoutingEngine.Bookmarks
                 {
                     var json = File.ReadAllText(path);
                     var items = JsonSerializer.Deserialize<List<Bookmark>>(json);
+
                     if (items != null)
                         store._items.AddRange(items.Where(b => b != null && !string.IsNullOrWhiteSpace(b.Name)));
                 }
@@ -82,7 +84,7 @@ namespace adaptive_offline_gps.RoutingEngine.Bookmarks
             }
         }
 
-        //  Operations ----------------------------------------------------------
+        //  Operations ============================================================
 
         /// <summary>
         /// Add a new bookmark. The returned instance carries the actual stored
@@ -122,7 +124,9 @@ namespace adaptive_offline_gps.RoutingEngine.Bookmarks
         public bool Remove(Bookmark bookmark)
         {
             bool removed = _items.Remove(bookmark);
-            if (removed) Save();
+            if (removed) 
+                Save();
+
             return removed;
         }
 
@@ -132,7 +136,7 @@ namespace adaptive_offline_gps.RoutingEngine.Bookmarks
             Save();
         }
 
-        //  Name conflict resolution -------------------------------------------
+        //  Name conflict resolution ============================================================
 
         private static readonly Regex SuffixRegex = new(@"^(?<base>.*?)\s*\((?<n>\d+)\)\s*$", RegexOptions.Compiled);
 

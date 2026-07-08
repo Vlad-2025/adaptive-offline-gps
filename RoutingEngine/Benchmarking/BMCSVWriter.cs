@@ -41,7 +41,9 @@ namespace adaptive_offline_gps.RoutingEngine.Benchmarking
                 .Replace(' ', '_')
                 .Replace('/', '_')
                 .Replace('\\', '_');
+
             string stamp = report.StartedUtc.ToLocalTime().ToString("yyyy-MM-dd_HH-mm", Inv);
+
             return $"bench_{scen}_{stamp}.csv";
         }
 
@@ -57,11 +59,13 @@ namespace adaptive_offline_gps.RoutingEngine.Benchmarking
             M($"ch_shortcuts:    {r.ChShortcuts}");
             M($"mode:            {r.Config.Mode}");
             M($"query_seed:      {r.Config.QuerySeed}");
+
             if (r.Config.Mode == BenchmarkMode.MultiQuery)
             {
                 M($"buckets:         {string.Join(",", r.Config.Buckets.Select(b => b.Label))}");
                 M($"pairs_per_bucket: {r.Config.PairsPerBucket}");
             }
+
             M($"warmup_runs:     {r.Config.WarmupRuns}");
             M($"measured_runs:   {r.Config.MeasuredRuns}");
             M($"algorithms:      {string.Join(",", r.Config.AlgorithmNames)}");

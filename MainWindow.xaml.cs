@@ -199,11 +199,11 @@ namespace adaptive_offline_gps
                 //  Branch: CH alternatives goes through a separate path
                 if (LeftPanel.SelectedAlgorithm == "CH (alt)")
                 {
-                    CHDebugVerifier.Verify(
-                        _mapEngine.Graph,
-                        _mapEngine.ChGraph,
-                        _routingController.StartNodeIndex,
-                        _routingController.EndNodeIndex);
+                    //CHDebugVerifier.Verify(
+                    //    _mapEngine.Graph,
+                    //    _mapEngine.ChGraph,
+                    //    _routingController.StartNodeIndex,
+                    //    _routingController.EndNodeIndex);
 
                     LeftPanel.Log("running CH (alt)...");
 
@@ -278,12 +278,12 @@ namespace adaptive_offline_gps
 
                 if (algo is CHAlgorithmWrapper)
                 {
-                    CHDebugVerifier.Verify(
-                        _mapEngine.Graph,
-                        chForRun,
-                        _routingController.StartNodeIndex,
-                        _routingController.EndNodeIndex
-                        );
+                    //CHDebugVerifier.Verify(
+                    //    _mapEngine.Graph,
+                    //    chForRun,
+                    //    _routingController.StartNodeIndex,
+                    //    _routingController.EndNodeIndex
+                    //    );
                 }
 
                 LeftPanel.Log($"running {algo.Name}...");

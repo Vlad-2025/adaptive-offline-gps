@@ -106,6 +106,7 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
             //  romania-latest.osm.rgph -> "romania-latest.osm" -> "romania-latest"
             if (name.EndsWith(".osm", StringComparison.OrdinalIgnoreCase))
                 name = name.Substring(0, name.Length - 4);
+
             return Path.Combine(dir, $"scenarios_{name}");
         }
 
@@ -124,9 +125,11 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
                 if (name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
                     result.Add(name.Substring(prefix.Length));
             }
+
             //  Skip the diagnostic summary CSV from the Python generator
             result.Remove("summary");
             result.Sort(StringComparer.OrdinalIgnoreCase);
+
             return result;
         }
 
@@ -177,11 +180,13 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
             var statuses = GetScenarioStatuses(baseRgphPath, scenariosDir, scenarioNames);
             var stale = new List<string>();
             foreach (var (name, s) in statuses)
-                if (s != ScenarioStatus.Ready) stale.Add(name);
+                if (s != ScenarioStatus.Ready) 
+                    stale.Add(name);
+
             return stale;
         }
 
-        //  Preprocessing -------------------------------------------------------
+        //  Preprocessing ======================================================
 
         /// <summary>
         /// Preprocess one scenario: apply CSV, run CH, save .chgr. Progress is
@@ -220,7 +225,8 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
 
             for (int i = 0; i < scenarioNames.Count; i++)
             {
-                if (cancel.IsCancellationRequested) break;
+                if (cancel.IsCancellationRequested) 
+                    break;
 
                 var r = PreprocessOne(
                     baseGraph, baseRgphPath, scenariosDir, scenarioNames[i],
@@ -229,7 +235,8 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
 
                 results.Add(r);
 
-                if (r.Cancelled) break;
+                if (r.Cancelled) 
+                    break;
             }
             return results;
         }
@@ -262,18 +269,21 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
             {
                 result.Error = new FileNotFoundException(
                     $"Scenario CSV not found: {csvPath}", csvPath);
+
                 return result;
             }
 
             try
             {
-                //  1. Apply scenario multipliers --------------------------------
+                //  1. Apply scenario multipliers 
                 progress?.Report(new ScenarioProgress(
                     scenarioName, index1Based, total, "Applying CSV multipliers...", 0.0));
+
                 log($"[scenario:{scenarioName}] Applying CSV multipliers...");
 
                 var swApply = Stopwatch.StartNew();
                 var applied = ScenarioWeightLoader.Apply(baseGraph, csvPath);
+
                 swApply.Stop();
 
                 result.ApplyTime = swApply.Elapsed;
@@ -286,9 +296,10 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
 
                 cancel.ThrowIfCancellationRequested();
 
-                //  2. CH preprocessing -----------------------------------------
+                //  2. CH preprocessing 
                 progress?.Report(new ScenarioProgress(
                     scenarioName, index1Based, total, "Building contraction hierarchy...", 0.0));
+
                 log($"[scenario:{scenarioName}] CH preprocessing (this takes ~20 min)...");
 
                 //  Inner-progress adapter: rebroadcast the CH fraction with the
@@ -301,20 +312,26 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
 
                 var swCh = Stopwatch.StartNew();
                 var ch = new CHPreprocessor().Preprocess(applied.Graph, chProgress, cancel);
+
                 swCh.Stop();
+
                 result.PreprocessTime = swCh.Elapsed;
+
                 log($"[scenario:{scenarioName}] CH built in {swCh.Elapsed.TotalMinutes:F1} min");
 
                 cancel.ThrowIfCancellationRequested();
 
-                //  3. Save .chgr ------------------------------------------------
+                //  3. Save .chgr 
                 progress?.Report(new ScenarioProgress(
                     scenarioName, index1Based, total, "Saving .chgr...", 1.0));
+
                 log($"[scenario:{scenarioName}] Writing {chPath}");
 
                 var swSave = Stopwatch.StartNew();
                 CHGraphSerializer.Save(ch, chPath, scenarioName);
+
                 swSave.Stop();
+
                 result.SaveTime = swSave.Elapsed;
 
                 log($"[scenario:{scenarioName}] Done. " +
@@ -331,18 +348,26 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
                 //  Best-effort cleanup of any partially-written .chgr.
                 //  In practice the cancel point is before CHGraphSerializer.Save
                 //  so the file won't exist; this is a safety net only.
-                try { if (File.Exists(chPath)) File.Delete(chPath); } catch { }
+                try 
+                { 
+                    if (File.Exists(chPath)) File.Delete(chPath); 
+                } catch 
+                { 
+                }
+
                 return result;
             }
             catch (Exception ex)
             {
                 result.Error = ex;
+
                 log($"[scenario:{scenarioName}] ERROR: {ex.Message}");
+                
                 return result;
             }
         }
 
-        //  Runtime selection ---------------------------------------------------
+        //  Runtime selection ======================================================
 
         /// <summary>
         /// Load a preprocessed scenario .chgr at runtime. Requires the base graph

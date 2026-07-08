@@ -112,6 +112,7 @@ namespace adaptive_offline_gps.RoutingEngine.RoadGraphBuilding
                 }
             }
             g = null;
+
             return false;
         }
 
